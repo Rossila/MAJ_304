@@ -718,6 +718,156 @@ public class graphics implements ActionListener {
 		okButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				//Add checks for non-null values
+				PreparedStatement ps;
+					if(bookMenu.getSelectedItem().toString() == "book") {
+						try{
+							ps = con.prepareStatement("INSERT INTO Book VALUES (?,?,?,?,?,?)");
+							ps.setString(1, callNumberField.getText());
+							
+							ps.setString(2, isbnField.getText());
+							
+							ps.setString(3, nameField.getText());
+							
+							ps.setString(4, authorField.getText());
+							
+							ps.setString(5, publisherField.getText());
+							
+							ps.setString(6, yearField.getText());
+							
+							ps.executeUpdate();
+							con.commit();
+							System.out.println("Book successfully added!");
+							ps.close();
+						}
+						catch(SQLException ex){
+							System.out.println("Message: " + ex.getMessage());
+							try{
+								con.rollback();
+							}
+							catch(SQLException ex2){
+								System.out.println("Message: " + ex2.getMessage());
+								System.exit(-1);
+							}
+						}
+						catch(ParseException px){
+							// TODO Auto-generated catch block
+							px.printStackTrace();
+						}
+						
+						try{
+							ps = con.prepareStatement("INSERT INTO BookCopy VALUES (?,?,?)");
+							
+							ps.setString(1, callNumberField.getText());
+							
+							ps.setString(2, '1');
+							
+							ps.setString(3, "in");
+							
+							ps.executeUpdate();
+							con.commit();
+							System.out.println("BookCopy successfully added!");
+							ps.close();
+						}
+						catch(SQLException ex3){
+							System.out.println("Message: " + ex3.getMessage());
+							try{
+								con.rollback();
+							}
+							catch(SQLException ex4){
+								System.out.println("Message: " + ex4.getMessage());
+								System.exit(-1);
+							}
+						}
+						catch(ParseException px2){
+							// TODO Auto-generated catch block
+							px2.printStackTrace();
+						}
+						
+						try{
+							ps = con.prepareStatement("INSERT INTO HasAuthor VALUES (?,?)");
+							
+							ps.setString(1, callNumberField.getText());
+							
+							ps.setString(2, authorField.getText());
+							
+							ps.executeUpdate();
+							con.commit();
+							System.out.println("HasAuthor successfully added!");
+							ps.close();
+						}
+						catch(SQLException ex5){
+							System.out.println("Message: " + ex5.getMessage());
+							try{
+								con.rollback();
+							}
+							catch(SQLException ex6){
+								System.out.println("Message: " + ex6.getMessage());
+								System.exit(-1);
+							}
+						}
+						catch(ParseException px3){
+							// TODO Auto-generated catch block
+							px3.printStackTrace();
+						}
+						
+						try{
+							ps = con.prepareStatement("INSERT INTO HasSubject VALUES (?,?)");
+							
+							ps.setString(1, callNumberField.getText());
+							
+							ps.setString(2, NULL);
+							
+							ps.executeUpdate();
+							con.commit();
+							System.out.println("HasSubject successfully added!");
+							ps.close();
+						}
+						catch(SQLException ex7){
+							System.out.println("Message: " + ex7.getMessage());
+							try{
+								con.rollback();
+							}
+							catch(SQLException ex8){
+								System.out.println("Message: " + ex8.getMessage());
+								System.exit(-1);
+							}
+						}
+						catch(ParseException px4){
+							// TODO Auto-generated catch block
+							px4.printStackTrace();
+						}
+					}
+					else {
+						try{
+							ps = con.prepareStatement("INSERT INTO BookCopy VALUES(?,?,?)");
+							
+							ps.setString(1, callNumberField.getText());
+							
+							// NEED TO MAKE SOME KIND OF COUNTER BUT DON'T CREATE IT IN THE DATABASE
+							//ps.setString(2, 
+							
+							ps.setString(3, "in");
+							
+							ps.executeUpdate();
+							con.commit();
+							System.out.println("BookCopy successfully added!");
+							ps.close();
+						}
+						catch(SQLException ex){
+							System.out.println("Message: " + ex.getMessage());
+							try{
+								con.rollback();
+							}
+							catch(SQLException ex1){
+								System.out.println("Message: " + ex1.getMessage());
+								System.exit(-1);
+							}
+						}
+						catch(ParseException px){
+							// TODO Auto-generated catch block
+							px.printStackTrace();
+						}
+					}
 				addBoookFrame.dispose();
 				showMainMenu("clerck"); 
 			}
