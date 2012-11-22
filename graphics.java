@@ -652,7 +652,7 @@ public class graphics implements ActionListener {
 		JTextArea nameArea = new JTextArea("Title: ");
 		nameArea.setEditable(false);
 		contentPane.add(nameArea, c);
-		JTextField nameField = new JTextField(30);
+		final JTextField nameField = new JTextField(30);
 		c.gridx = 1;
 		contentPane.add(nameField, c);
 
@@ -663,7 +663,7 @@ public class graphics implements ActionListener {
 		contentPane.add(typeArea, c);
 		c.gridx=1;
 		String[] bookOptions = { "copy", "book" };
-		JComboBox bookMenu = new JComboBox(bookOptions);
+		final JComboBox bookMenu = new JComboBox(bookOptions);
 		contentPane.add(bookMenu, c);
 
 		c.gridx=0;
@@ -671,7 +671,7 @@ public class graphics implements ActionListener {
 		JTextArea callNumberArea = new JTextArea("Call Number: ");
 		callNumberArea.setEditable(false);
 		contentPane.add(callNumberArea, c);
-		JTextField callNumberField = new JTextField(30);
+		final JTextField callNumberField = new JTextField(30);
 		c.gridx = 1;
 		contentPane.add(callNumberField, c);
 		
@@ -680,7 +680,7 @@ public class graphics implements ActionListener {
 		JTextArea authorArea = new JTextArea("Main author: ");
 		authorArea.setEditable(false);
 		contentPane.add(authorArea, c);
-		JTextField authorField = new JTextField(30);
+		final JTextField authorField = new JTextField(30);
 		c.gridx = 1;
 		contentPane.add(authorField, c);
 		
@@ -689,7 +689,7 @@ public class graphics implements ActionListener {
 		JTextArea isbnArea = new JTextArea("ISBN: ");
 		isbnArea.setEditable(false);
 		contentPane.add(isbnArea, c);
-		JTextField isbnField = new JTextField(30);
+		final JTextField isbnField = new JTextField(30);
 		c.gridx = 1;
 		contentPane.add(isbnField, c);
 		
@@ -698,7 +698,7 @@ public class graphics implements ActionListener {
 		JTextArea publisherArea = new JTextArea("Publisher: ");
 		publisherArea.setEditable(false);
 		contentPane.add(publisherArea, c);
-		JTextField publisherField = new JTextField(30);
+		final JTextField publisherField = new JTextField(30);
 		c.gridx = 1;
 		contentPane.add(publisherField, c);
 		
@@ -707,7 +707,7 @@ public class graphics implements ActionListener {
 		JTextArea yearArea = new JTextArea("Year: ");
 		yearArea.setEditable(false);
 		contentPane.add(yearArea, c);
-		JTextField yearField = new JTextField(30);
+		final JTextField yearField = new JTextField(30);
 		c.gridx = 1;
 		contentPane.add(yearField, c);
 
@@ -716,158 +716,177 @@ public class graphics implements ActionListener {
 		c.gridx = 0;
 		c.gridy = 7;
 		okButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
+			// don't know how to fix the error
+			public void actionPerformed(ActionEvent e, String titleField.getText()) {
 				//Add checks for non-null values
 				PreparedStatement ps;
-					if(bookMenu.getSelectedItem().toString() == "book") {
-						try{
-							ps = con.prepareStatement("INSERT INTO Book VALUES (?,?,?,?,?,?)");
-							ps.setString(1, callNumberField.getText());
-							
-							ps.setString(2, isbnField.getText());
-							
-							ps.setString(3, nameField.getText());
-							
-							ps.setString(4, authorField.getText());
-							
-							ps.setString(5, publisherField.getText());
-							
-							ps.setString(6, yearField.getText());
-							
-							ps.executeUpdate();
-							con.commit();
-							System.out.println("Book successfully added!");
-							ps.close();
-						}
-						catch(SQLException ex){
-							System.out.println("Message: " + ex.getMessage());
-							try{
-								con.rollback();
-							}
-							catch(SQLException ex2){
-								System.out.println("Message: " + ex2.getMessage());
-								System.exit(-1);
-							}
-						}
-						catch(ParseException px){
-							// TODO Auto-generated catch block
-							px.printStackTrace();
-						}
+				if(bookMenu.getSelectedItem().toString() == "book") {
+					try{
+						ps = con.prepareStatement("INSERT INTO Book VALUES (?,?,?,?,?,?)");
+						ps.setString(1, callNumberField.getText());
 						
-						try{
-							ps = con.prepareStatement("INSERT INTO BookCopy VALUES (?,?,?)");
-							
-							ps.setString(1, callNumberField.getText());
-							
-							ps.setString(2, '1');
-							
-							ps.setString(3, "in");
-							
-							ps.executeUpdate();
-							con.commit();
-							System.out.println("BookCopy successfully added!");
-							ps.close();
-						}
-						catch(SQLException ex3){
-							System.out.println("Message: " + ex3.getMessage());
-							try{
-								con.rollback();
-							}
-							catch(SQLException ex4){
-								System.out.println("Message: " + ex4.getMessage());
-								System.exit(-1);
-							}
-						}
-						catch(ParseException px2){
-							// TODO Auto-generated catch block
-							px2.printStackTrace();
-						}
+						ps.setString(2, isbnField.getText());
 						
-						try{
-							ps = con.prepareStatement("INSERT INTO HasAuthor VALUES (?,?)");
-							
-							ps.setString(1, callNumberField.getText());
-							
-							ps.setString(2, authorField.getText());
-							
-							ps.executeUpdate();
-							con.commit();
-							System.out.println("HasAuthor successfully added!");
-							ps.close();
-						}
-						catch(SQLException ex5){
-							System.out.println("Message: " + ex5.getMessage());
-							try{
-								con.rollback();
-							}
-							catch(SQLException ex6){
-								System.out.println("Message: " + ex6.getMessage());
-								System.exit(-1);
-							}
-						}
-						catch(ParseException px3){
-							// TODO Auto-generated catch block
-							px3.printStackTrace();
-						}
+						ps.setString(3, nameField.getText());
 						
+						ps.setString(4, authorField.getText());
+						
+						ps.setString(5, publisherField.getText());
+						
+						ps.setString(6, yearField.getText());
+						
+						ps.executeUpdate();
+						con.commit();
+						System.out.println("Book successfully added!");
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
 						try{
-							ps = con.prepareStatement("INSERT INTO HasSubject VALUES (?,?)");
-							
-							ps.setString(1, callNumberField.getText());
-							
-							ps.setString(2, NULL);
-							
-							ps.executeUpdate();
-							con.commit();
-							System.out.println("HasSubject successfully added!");
-							ps.close();
+							con.rollback();
 						}
-						catch(SQLException ex7){
-							System.out.println("Message: " + ex7.getMessage());
-							try{
-								con.rollback();
-							}
-							catch(SQLException ex8){
-								System.out.println("Message: " + ex8.getMessage());
-								System.exit(-1);
-							}
-						}
-						catch(ParseException px4){
-							// TODO Auto-generated catch block
-							px4.printStackTrace();
+						catch(SQLException ex2){
+							System.out.println("Message: " + ex2.getMessage());
+							System.exit(-1);
 						}
 					}
-					else {
+					catch(ParseException px){
+						// TODO Auto-generated catch block
+						px.printStackTrace();
+					}
+					
+					try{
+						ps = con.prepareStatement("INSERT INTO BookCopy VALUES (?,?,?)");
+						
+						ps.setString(1, callNumberField.getText());
+						
+						ps.setInt(2, 1);
+						
+						ps.setString(3, "in");
+						
+						ps.executeUpdate();
+						con.commit();
+						System.out.println("BookCopy successfully added!");
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
 						try{
-							ps = con.prepareStatement("INSERT INTO BookCopy VALUES(?,?,?)");
-							
-							ps.setString(1, callNumberField.getText());
-							
-							// NEED TO MAKE SOME KIND OF COUNTER BUT DON'T CREATE IT IN THE DATABASE
-							//ps.setString(2, 
-							
-							ps.setString(3, "in");
-							
-							ps.executeUpdate();
-							con.commit();
-							System.out.println("BookCopy successfully added!");
-							ps.close();
+							con.rollback();
 						}
-						catch(SQLException ex){
-							System.out.println("Message: " + ex.getMessage());
-							try{
-								con.rollback();
-							}
-							catch(SQLException ex1){
-								System.out.println("Message: " + ex1.getMessage());
-								System.exit(-1);
-							}
-						}
-						catch(ParseException px){
-							// TODO Auto-generated catch block
-							px.printStackTrace();
+						catch(SQLException ex2){
+							System.out.println("Message: " + ex2.getMessage());
+							System.exit(-1);
 						}
 					}
+					catch(ParseException px){
+						// TODO Auto-generated catch block
+						px.printStackTrace();
+					}
+					
+					try{
+						ps = con.prepareStatement("INSERT INTO HasAuthor VALUES (?,?)");
+						
+						ps.setString(1, callNumberField.getText());
+						
+						ps.setString(2, authorField.getText());
+						
+						ps.executeUpdate();
+						con.commit();
+						System.out.println("HasAuthor successfully added!");
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						try{
+							con.rollback();
+						}
+						catch(SQLException ex2){
+							System.out.println("Message: " + ex.getMessage());
+							System.exit(-1);
+						}
+					}
+					catch(ParseException px){
+						// TODO Auto-generated catch block
+						px.printStackTrace();
+					}
+					
+					try{
+						ps = con.prepareStatement("INSERT INTO HasSubject VALUES (?,?)");
+						
+						ps.setString(1, callNumberField.getText());
+						
+						// temporary solution until a field for subject is made
+						ps.setString(2, titleField.getText());
+						
+						ps.executeUpdate();
+						con.commit();
+						System.out.println("HasSubject successfully added!");
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						try{
+							con.rollback();
+						}
+						catch(SQLException ex2){
+							System.out.println("Message: " + ex2.getMessage());
+							System.exit(-1);
+						}
+					}
+					catch(ParseException px){
+						// TODO Auto-generated catch block
+						px.printStackTrace();
+					}
+				}
+				else {
+					int copyNumber;
+					try{
+						ps = con.prepareStatement("SELECT MAX(copyNo) FROM BookCopy WHERE callNumber = ?");
+						
+						ps.executeQuery();
+						copyNumber = Integer.parseInt(ps.toString());
+						System.out.println("Max copyNo: " + copyNumber + "\n");
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						System.exit(-1);
+					}
+					catch(ParseException px){
+						// TODO Auto-generated catch block
+						px.printStackTrace();
+					}
+					
+					try{
+						ps = con.prepareStatement("INSERT INTO BookCopy VALUES(?,?,?)");
+						
+						ps.setString(1, callNumberField.getText());
+						
+						ps.setInt(2, copyNumber+1); 
+						
+						ps.setString(3, "in");
+						
+						ps.executeUpdate();
+						con.commit();
+						System.out.println("BookCopy successfully added!");
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						try{
+							con.rollback();
+						}
+						catch(SQLException ex2){
+							System.out.println("Message: " + ex2.getMessage());
+							System.exit(-1);
+						}
+					}
+					catch(ParseException px){
+						// TODO Auto-generated catch block
+						px.printStackTrace();
+					}
+				}
 				addBoookFrame.dispose();
 				showMainMenu("clerck"); 
 			}
