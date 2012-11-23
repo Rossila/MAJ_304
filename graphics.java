@@ -1,9 +1,7 @@
 // We need to import the java.sql package to use JDBC
 import java.sql.*;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.GregorianCalendar;
 import java.util.regex.Pattern;
 
 // for reading from the command line
@@ -13,6 +11,9 @@ import java.io.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+
+// for GregorianCalendar
+import java.util.*;
 
 /*
  * This class implements a graphical login window and a simple text
@@ -722,7 +723,6 @@ public class graphics implements ActionListener {
 			public void actionPerformed(ActionEvent e) {
 				//Add checks for non-null values
 				PreparedStatement ps;
-				ResultSet  rs;
 				if(bookMenu.getSelectedItem().toString() == "book") {
 					try{
 						ps = con.prepareStatement("INSERT INTO Book VALUES (?,?,?,?,?,?)");
@@ -827,16 +827,22 @@ public class graphics implements ActionListener {
 					}
 				}
 				else {
-					int copyNumber = 0;
+					ResultSet rs;
+					int copyNumber = 1;
 					try{
-						ps = con.prepareStatement("SELECT MAX(copyNo) AS copyNo FROM BookCopy WHERE callNumber = ?");
+						ps = con.prepareStatement("SELECT MAX(copyNo) AS copyNo FROM BookCopy WHERE callNumber = (?)");
+						
 						ps.setString(1, callNumberField.getText());
 						rs = ps.executeQuery();
+						
+						// get info on ResultSet
+						ResultSetMetaData rsmd = rs.getMetaData();
 						
 						// get the maximum existing copyNo for this book
 						rs.next();
 						copyNumber = rs.getInt("copyNo");
-						ps.close();
+						System.out.println("Max copyNo:" + copyNumber + "\n");
+						ps.close();						
 					}
 					catch(SQLException ex){
 						System.out.println("Message: " + ex.getMessage());
@@ -869,7 +875,7 @@ public class graphics implements ActionListener {
 					}
 				}
 				addBoookFrame.dispose();
-				showMainMenu("librarian"); 
+				showMainMenu("clerck"); 
 			}
 		});
 		contentPane.add(okButton, c);
@@ -911,7 +917,7 @@ public class graphics implements ActionListener {
 		JTextArea carnNumberArea = new JTextArea("Card Number: ");
 		carnNumberArea.setEditable(false);
 		contentPane.add(carnNumberArea, c);
-		final JTextField cardNumberField = new JTextField(20);
+		JTextField cardNumberField = new JTextField(20);
 		c.gridx = 1;
 		contentPane.add(cardNumberField, c);
 
@@ -923,27 +929,27 @@ public class graphics implements ActionListener {
 
 		c.gridx=0;
 		c.gridy=2;
-		final JTextField callNumberField = new JTextField(20);
+		JTextField callNumberField = new JTextField(20);
 		contentPane.add(callNumberField, c);
 
 		c.gridx=0;
 		c.gridy=3;
-		final JTextField callNumberField1 = new JTextField(20);
+		JTextField callNumberField1 = new JTextField(20);
 		contentPane.add(callNumberField1, c);
 
 		c.gridx=0;
 		c.gridy=4;
-		final JTextField callNumberField2 = new JTextField(20);
+		JTextField callNumberField2 = new JTextField(20);
 		contentPane.add(callNumberField2, c);
 
 		c.gridx=0;
 		c.gridy=5;
-		final JTextField callNumberField3 = new JTextField(20);
+		JTextField callNumberField3 = new JTextField(20);
 		contentPane.add(callNumberField3, c);
 
 		c.gridx=0;
 		c.gridy=6;
-		final JTextField callNumberField4 = new JTextField(20);
+		JTextField callNumberField4 = new JTextField(20);
 		contentPane.add(callNumberField4, c);
 
 
@@ -953,62 +959,6 @@ public class graphics implements ActionListener {
 		okButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				//Add checks for non-null values
-				int copyNumber;
-				String callNumber;
-				PreparedStatement ps;
-				PreparedStatement ps2;
-				PreparedStatement ps3;
-				ResultSet  rs;
-				
-				// create a new calendar initialized to the current time and date
-				GregorianCalendar gregCalendar = new GregorianCalendar();
-				java.sql.Date sqlDate = new java.sql.Date(gregCalendar.getTime().getTime());
-				
-				try{
-					ps = con.prepareStatement("SELECT B.callNumber as callNumber, MIN(BC.copyNo) as copyNo FROM Book B, BookCopy BC WHERE B.callNumber in (?,?,?,?,?) AND B.callNumber = BC.callNumber AND BC.status = 'in' GROUP BY B.callNumber");
-					ps2 = con.prepareStatement("INSERT INTO Borrowing VALUES (borid_counter.nextval,?,?,?,?,null)");
-					ps3 = con.prepareStatement("UPDATE BookCopy SET status='out' WHERE callNumber = ? AND copyNo = ?");
-					ps.setString(1, callNumberField.getText());
-					ps.setString(2, callNumberField1.getText());
-					ps.setString(3, callNumberField2.getText());
-					ps.setString(4, callNumberField3.getText());
-					ps.setString(5, callNumberField4.getText());
-					rs = ps.executeQuery();
-					
-					// set the outdate to the current date
-					ps2.setDate(4, sqlDate);
-					
-					ps2.setString(1, cardNumberField.getText());
-					
-					// get the maximum existing copyNo for this book
-					while(rs.next()){
-						copyNumber = rs.getInt("copyNo");
-						callNumber = rs.getString("callNumber");
-						System.out.println("Getting copyNumber: " + copyNumber + " and callNumber: " + callNumber);
-						
-						// try to create a new entry in the borrowing table
-						ps2.setString(2, callNumber);
-						ps2.setInt(3, copyNumber);
-						ps2.executeUpdate();
-						con.commit();
-						System.out.println("Book copy successfully checked out!");
-						
-						// update copy status to 'out'
-						ps3.setString(1, callNumber);
-						ps3.setInt(2, copyNumber);
-						ps3.executeUpdate();
-						con.commit();
-						System.out.println("Book copy status set to 'out'!");
-					}
-					ps.close();
-					ps2.close();
-					ps3.close();
-				}
-				catch(SQLException ex){
-					System.out.println("Message: " + ex.getMessage());
-					System.exit(-1);
-				}
-				
 				checkOutFrame.dispose();
 				showMainMenu("clerck"); 
 			}
@@ -1053,39 +1003,196 @@ public class graphics implements ActionListener {
 		JTextArea callNumbArea = new JTextArea("Call Number: ");
 		callNumbArea.setEditable(false);
 		contentPane.add(callNumbArea, c);
-
-		c.gridx=0;
-		c.gridy=2;
-		JTextField callNumberField = new JTextField(20);
+		c.gridx=1;
+		final JTextField callNumberField = new JTextField(20);
 		contentPane.add(callNumberField, c);
 
 		c.gridx=0;
-		c.gridy=3;
-		JTextField callNumberField1 = new JTextField(20);
-		contentPane.add(callNumberField1, c);
+		c.gridy=2;
+		JTextArea bidArea = new JTextArea("BID: ");
+		bidArea.setEditable(false);
+		contentPane.add(bidArea, c);
+		c.gridx=1;
+		final JTextField bidField = new JTextField(20);
+		contentPane.add(bidField, c);
 
-		c.gridx=0;
-		c.gridy=4;
+		/*c.gridx=0;
+		c.gridy=3;
 		JTextField callNumberField2 = new JTextField(20);
 		contentPane.add(callNumberField2, c);
 
 		c.gridx=0;
-		c.gridy=5;
+		c.gridy=4;
 		JTextField callNumberField3 = new JTextField(20);
 		contentPane.add(callNumberField3, c);
 
 		c.gridx=0;
-		c.gridy=6;
+		c.gridy=5;
 		JTextField callNumberField4 = new JTextField(20);
-		contentPane.add(callNumberField4, c);
+		contentPane.add(callNumberField4, c);*/
 
 
 		JButton okButton = new JButton("OK");
 		c.gridx = 0;
-		c.gridy = 7;
+		c.gridy = 6;
 		okButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				//Add checks for non-null values
+				PreparedStatement ps;
+				try{
+					ps = con.prepareStatement("UPDATE BookCopy SET status=\'in\' WHERE callNumber = ( SELECT callNumber" +
+																									"FROM Borrowing" +
+																									"WHERE bid=\'(?)\' AND callNumber=\'(?)\'" +
+																									"GROUP BY callNumber)" +
+																					"AND copyNo = ( SELECT copyNo" +
+																									"FROM Borrowing " +
+																									"WHERE bid=\'(?)\' AND callNumber=\'(?)\'" +
+																									"GROUP BY copyNo)");
+					
+					ps.setString(1, bidField.getText());
+					
+					ps.setString(2, callNumberField.getText());
+					
+					ps.setString(3, bidField.getText());
+					
+					ps.setString(4, callNumberField.getText());
+					
+					ps.executeUpdate();
+					con.commit();
+					System.out.println("BookCopy sucessfully updated!");
+					ps.close();
+				}
+				catch(SQLException ex){
+					System.out.println("Message: " + ex.getMessage());
+					try{
+						con.rollback();
+					}
+					catch(SQLException ex2){
+						System.out.println("Message: " + ex2.getMessage());
+						System.exit(-1);
+					}
+				}
+				
+				java.util.Date outDate = null;
+				ResultSet rs;
+				try{
+					ps = con.prepareStatement("SELECT outDate FROM Borrowing WHERE bid=\'(?)\' AND callNumber=\'(?)\' AND inDate IS NOT NULL GROUP BY outDate");
+					
+					ps.setString(1, bidField.getText());
+					
+					ps.setString(2, callNumberField.getText());
+					rs = ps.executeQuery();
+					
+					// get info on ResultSet
+					ResultSetMetaData rsmd = rs.getMetaData();
+					
+					// get the maximum existing copyNo for this book
+					rs.next();
+					outDate = rs.getDate("outDate");
+					System.out.println("Check-out Date:" + outDate + "\n");
+					ps.close();		
+				}
+				catch(SQLException ex){
+					System.out.println("Message: " + ex.getMessage());
+					System.exit(-1);
+				}
+				
+				GregorianCalendar inCalendar = new GregorianCalendar();
+				inCalendar.add(Calendar.WEEK_OF_YEAR, 0);
+				java.util.Date inDate = null;
+				inDate.setTime(inCalendar.getTime().getTime());
+				GregorianCalendar outCalendar = new GregorianCalendar();
+				outCalendar.setTime(outDate);
+				outCalendar.add(Calendar.WEEK_OF_YEAR, 2);
+				long today = inCalendar.getTime().getTime();
+				long tempOutDate = outCalendar.getTime().getTime();
+				
+				try{
+					ps = con.prepareStatement("UPDATE Borrowing SET inDate=\'(?)\' WHERE bid=\'(?)\' AND callNumber=\'(?)\' outDate=\'(?)\'");
+					
+					java.sql.Date sqlDate = new java.sql.Date(inDate.getTime());
+					ps.setDate(1, sqlDate);
+					
+					ps.setString(2, bidField.getText());
+					
+					ps.setString(3, callNumberField.getText());
+					
+					java.sql.Date sqlDate2 = new java.sql.Date(outDate.getTime());
+					ps.setDate(4, sqlDate2);
+					
+					ps.executeUpdate();
+					con.commit();
+					System.out.println("Borrowing successfully updated!");
+					ps.close();
+				}
+				catch(SQLException ex){
+					System.out.println("Message: " + ex.getMessage());
+					try{
+						con.rollback();
+					}
+					catch(SQLException ex2){
+						System.out.println("Message: " + ex2.getMessage());
+						System.exit(-1);
+					}
+				}
+				
+				// to compare the two dates, convert to long 
+				if(today > tempOutDate){
+					// create a fine entry here
+					int borid = 1;
+					try{
+						ps = con.prepareStatement("SELECT borid FROM Borrowing WHERE bid=\'(?)\' AND callNumber=\'(?)\' AND outDate=\'(?)\' AND inDate=\'(?)\'");
+						
+						ps.setString(1, bidField.getText());
+						
+						ps.setString(2, callNumberField.getText());
+						
+						java.sql.Date sqlDate = new java.sql.Date(outDate.getTime());
+						ps.setDate(3, sqlDate);
+						
+						java.sql.Date sqlDate2 = new java.sql.Date(inDate.getTime());
+						ps.setDate(4, sqlDate2);
+						
+						rs = ps.executeQuery();
+						ResultSetMetaData rsmd = rs.getMetaData();
+						rs.next();
+						borid = rs.getInt("borid");
+						System.out.println("borid: " + borid);
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						System.exit(-1);
+					}
+					try{
+						ps = con.prepareStatement("INSERT INTO Fine VALUES (fid_counter.nextval, ?, ?, ?, ?)");
+						
+						int amount = 10;
+						ps.setInt(1, amount);
+						
+						java.sql.Date sqlDate = new java.sql.Date(inDate.getTime());
+						ps.setDate(2, sqlDate);
+						
+						ps.setDate(3, null);
+						
+						ps.setInt(4, borid);
+						
+						ps.executeUpdate();
+						con.commit();
+						System.out.println("Fine successfully added!");
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						try{
+							con.rollback();
+						}
+						catch(SQLException ex2){
+							System.out.println("Message: " + ex2.getMessage());
+							System.exit(-1);
+						}
+					}
+				}
 				returnFrame.dispose();
 				showMainMenu("clerck"); 
 			}
@@ -1308,7 +1415,7 @@ public class graphics implements ActionListener {
 
 					ps.setString(6, sinOrStField.getText());
 
-					ps.setString(7, expiryField.getText());
+					//ps.setString(7, expiryField.getText());
 
 					ps.setString(8, borrowerMenu.getSelectedItem().toString());
 
@@ -1428,7 +1535,7 @@ public class graphics implements ActionListener {
 		JButton payFine = new JButton("Pay by credit card");
 		payFine.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-			     showPaymentOptions();
+				showPaymentOptions();
 			   }
 
 			private void showPaymentOptions() {
