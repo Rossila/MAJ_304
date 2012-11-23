@@ -132,25 +132,48 @@ public class graphics implements ActionListener {
 	 * connects to Oracle database named ug and the library system using the
 	 * supplied borrower id and password
 	 */
-	private boolean connect(String username, String password) {
+	private boolean connect(int bid, String password) {
 		String connectURL = "jdbc:oracle:thin:@dbhost.ugrad.cs.ubc.ca:1522:ug";
-		/*
-		 * TO DO: Check if the supplied username is in the database and the
-		 * password corresponds
-		 */
-		boolean correct_username = true;
-		if (correct_username) {
-			try {
-				con = DriverManager.getConnection(connectURL, "ora_g7l7",
-						"a75171090");
+		PreparedStatement ps;
+		ResultSet rs;
+		String pw_rd;
+		int bid_rd;
 
-				System.out.println("\nConnected to Oracle!");
-				return true; 
-			} catch (SQLException ex) {
-				System.out.println("Message: " + ex.getMessage());
-				return false;
-			}
-		} 
+		// connect to oracle
+		try {
+			con = DriverManager.getConnection(connectURL, "ora_g7l7",
+					"a75171090");
+
+			System.out.println("\nConnected to Oracle!");
+ 
+		} catch (SQLException ex) {
+			System.out.println("Message: " + ex.getMessage());
+			return false;
+		}
+	
+		// check if the username and password provided are valid in the database
+		try {
+			ps = con.prepareStatement("SELECT b.bid as bid, b.password as password " +
+										"FROM borrower b " +
+										"WHERE b.bid = ? AND b.password = ?");
+			ps.setInt(1, bid);
+			ps.setString(2, password);
+			rs = ps.executeQuery();
+			con.commit();
+			
+			rs.next();
+			bid_rd = rs.getInt("bid");
+			pw_rd = rs.getString("password");
+			
+			ps.close();
+			
+			if (bid_rd == bid && pw_rd.equals(password) == true)
+				return true;
+			
+		} catch (SQLException e1) {
+			System.out.println("Message: " + e1.getMessage());
+			return false;
+		}
 		return false;
 	}
 
@@ -158,15 +181,32 @@ public class graphics implements ActionListener {
 	 * event handler for login window
 	 */
 	public void actionPerformed(ActionEvent e) {
-		if (connect(usernameField.getText(),
-				String.valueOf(passwordField.getPassword()))) {
+		PreparedStatement  ps;
+		ResultSet rs;
+		String type = "student";
+		if (connect(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 			// if the username and password are valid,
 			// remove the login window and display a text menu
 
 			/*
 			 * get the type of the borrower and pass it in
 			 */
-			String type = "clerck";
+			/*try {
+				ps = con.prepareStatement("SELECT b.type as type " +
+						"FROM borrower b " +
+						"WHERE b.bid = ? AND b.password = ?");
+				ps.setInt(1, Integer.parseInt(usernameField.getText()));
+				ps.setString(2, String.valueOf(passwordField.getPassword()));
+				
+				rs = ps.executeQuery();
+				con.commit();
+				rs.next();
+				type = rs.getString("type");
+				ps.close();
+			} catch (SQLException e1) {
+				System.out.println("Message: " + e1.getMessage());
+			}*/
+			
 			loginFrame.dispose();
 			showMainMenu(type);
 		} else {
@@ -247,10 +287,10 @@ public class graphics implements ActionListener {
 			c.gridy = 40;
 			contentPane.add(southPanel, c);
 
-		} else if (type.equals("clerck")) {
+		} else if (type.equals("clerk")) {
 			c.gridx = 0;
 			c.gridy = 0;
-			JTextArea welcomeString = new JTextArea("Welcome, clerck");
+			JTextArea welcomeString = new JTextArea("Welcome, clerk");
 			welcomeString.setEditable(false);
 			contentPane.add(welcomeString, c);
 			c.gridx = 1;
@@ -1010,7 +1050,7 @@ public class graphics implements ActionListener {
 				}
 				
 				checkOutFrame.dispose();
-				showMainMenu("clerck"); 
+				showMainMenu("clerk"); 
 			}
 		});
 		contentPane.add(okButton, c);
@@ -1021,7 +1061,7 @@ public class graphics implements ActionListener {
 		returnButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				checkOutFrame.dispose();
-				showMainMenu("clerck"); 
+				showMainMenu("clerk"); 
 			}
 		});
 		contentPane.add(returnButton, c);
@@ -1037,7 +1077,7 @@ public class graphics implements ActionListener {
 
 		checkOutFrame.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
-				showMainMenu("clerck");
+				showMainMenu("clerk");
 			}
 		});
 	}
