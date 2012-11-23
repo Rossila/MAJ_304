@@ -3,6 +3,7 @@ import java.sql.*;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.regex.Pattern;
 
@@ -244,6 +245,8 @@ public class graphics implements ActionListener {
 		});
 
 		if (type.equals("student")) {
+			// temp int to hold the bid of the account to look in
+			final int bid = 22;
 			JLabel labelSearch = new JLabel("Search: ");
 			JButton searchButton = new JButton("Search");
 			JTextField searchTextField = new JTextField(30);
@@ -261,7 +264,7 @@ public class graphics implements ActionListener {
 			accountButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					mainMenu.dispose();
-					showAccount();
+					showAccount(bid);
 				}
 			});
 
@@ -1423,22 +1426,96 @@ public class graphics implements ActionListener {
 
 	}
 
-	private void showAccount() {
-		final JFrame accountFrame = new JFrame("Welcome, username");
+	private void showAccount(int bid) {
+		final JFrame accountFrame = new JFrame("Welcome, username " + Integer.toString(bid));
 		accountFrame.setResizable(false);
 		accountFrame.getContentPane().setLayout(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
-
+		
+		PreparedStatement ps;
+		ResultSet rs;
+		String title;
+		int timelimit;
+		GregorianCalendar gregCalendar = new GregorianCalendar();
+		java.sql.Date sqlDate;
+		
+		// get the booktimelimit for this user
+		try {
+			ps = con.prepareStatement("SELECT bookTimeLimit " +
+										"FROM Borrower b, BorrowerType bt " +
+										"WHERE b.bid = ? AND bt.type = b.type");
+			ps.setInt(1, bid);
+			rs = ps.executeQuery();
+			rs.next();
+			timelimit = rs.getInt("bookTimeLimit");
+			
+			con.commit();
+			ps.close();
+			
+			while(rs.next()){
+				// get the book title
+				title = rs.getString("title");
+				
+				// get the book's outdate
+				sqlDate = rs.getDate("outdate");
+				gregCalendar.setTime(sqlDate);
+				// calculate the book's due date:
+				gregCalendar.add(Calendar.DATE, timelimit*7);
+				sqlDate = new java.sql.Date(gregCalendar.getTime().getTime());
+				
+				JTextArea item = new JTextArea("Book title: "+ rs.getString("title") + " Due date: " + sqlDate.toString());
+				item.setEditable(false);
+				itemsBorr.add(item);
+			}
+			// commit work 
+			con.commit();
+			ps.close();
+		} catch (SQLException e1) {
+			System.out.println("Message: " + e1.getMessage());
+		}
+		
 		c.gridx= 0;
 		int numbItemsCheckedOut = 5;
 		JPanel itemsBorr = new JPanel(new GridLayout(numbItemsCheckedOut, 1));
 		c.gridy = 0;
 		c.gridwidth = 2;
+		
+		// get overdue books
+		try {
+			ps = con.prepareStatement("SELECT UNIQUE book.title as title, bo.outDate as outdate " +
+					"FROM Borrower b, borrowing bo, book " +
+					"WHERE b.bid = ? AND bo.bid = b.bid AND book.callNumber = bo.callNumber " +
+					"AND bo.indate is null");
+			ps.setInt(1, bid);
+			rs = ps.executeQuery();
+			
+			while(rs.next()){
+				// get the book title
+				title = rs.getString("title");
+				
+				// get the book's outdate
+				sqlDate = rs.getDate("outdate");
+				gregCalendar.setTime(sqlDate);
+				// calculate the book's due date:
+				gregCalendar.add(Calendar.DATE, 2*7);
+				sqlDate = new java.sql.Date(gregCalendar.getTime().getTime());
+				
+				JTextArea item = new JTextArea("Book title: "+ rs.getString("title") + " Due date: " + sqlDate.toString());
+				item.setEditable(false);
+				itemsBorr.add(item);
+			}
+			// commit work 
+			con.commit();
+			ps.close();
+		} catch (SQLException e1) {
+			System.out.println("Message: " + e1.getMessage());
+		}
+		/*
 		for(int i=0; i<numbItemsCheckedOut; i++) {
 			JTextArea item = new JTextArea("name: name of book"+ "         " + "due date: date the item has to be returned");
 			item.setEditable(false);
 			itemsBorr.add(item);
-		}
+		}*/
 		itemsBorr.setBorder(BorderFactory.createTitledBorder("Items checked out"));
 		accountFrame.add(itemsBorr, c);
 
