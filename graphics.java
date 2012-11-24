@@ -1096,41 +1096,245 @@ public class graphics implements ActionListener {
 		JTextArea callNumbArea = new JTextArea("Call Number: ");
 		callNumbArea.setEditable(false);
 		contentPane.add(callNumbArea, c);
-
-		c.gridx=0;
-		c.gridy=2;
-		JTextField callNumberField = new JTextField(20);
+		c.gridx=1;
+		final JTextField callNumberField = new JTextField(20);
 		contentPane.add(callNumberField, c);
 
 		c.gridx=0;
-		c.gridy=3;
-		JTextField callNumberField1 = new JTextField(20);
-		contentPane.add(callNumberField1, c);
+		c.gridy=2;
+		JTextArea copyNumbArea = new JTextArea("Copy Number:");
+		copyNumbArea.setEditable(false);
+		contentPane.add(copyNumbArea, c);
+		c.gridx=1;
+		final JTextField copyNumberField = new JTextField(20);
+		contentPane.add(copyNumberField, c);
 
-		c.gridx=0;
-		c.gridy=4;
+		/*c.gridx=0;
+		c.gridy=3;
 		JTextField callNumberField2 = new JTextField(20);
 		contentPane.add(callNumberField2, c);
 
 		c.gridx=0;
-		c.gridy=5;
+		c.gridy=4;
 		JTextField callNumberField3 = new JTextField(20);
 		contentPane.add(callNumberField3, c);
 
 		c.gridx=0;
-		c.gridy=6;
+		c.gridy=5;
 		JTextField callNumberField4 = new JTextField(20);
-		contentPane.add(callNumberField4, c);
+		contentPane.add(callNumberField4, c);*/
 
 
 		JButton okButton = new JButton("OK");
 		c.gridx = 0;
-		c.gridy = 7;
+		c.gridy = 6;
 		okButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				//Add checks for non-null values
+				PreparedStatement ps;
+				try{
+					ps = con.prepareStatement("UPDATE BookCopy SET status=\'in\' WHERE callNumber=(?) AND copyNo=(?)");
+					
+					ps.setString(1, callNumberField.getText());
+					
+					//int tempCopyNum = Integer.parseInt(copyNumberField.getText());
+					ps.setString(2, copyNumberField.getText());
+					
+					ps.executeUpdate();
+					con.commit();
+					System.out.println("BookCopy sucessfully updated!");
+					ps.close();
+				}
+				catch(SQLException ex){
+					System.out.println("Message: " + ex.getMessage());
+					try{
+						con.rollback();
+					}
+					catch(SQLException ex2){
+						System.out.println("Message: " + ex2.getMessage());
+						System.exit(-1);
+					}
+				}
+				int bid = 0;
+				int borid = 0;
+				java.util.Date outDate = null;
+				ResultSet rs;
+				try{
+					ps = con.prepareStatement("SELECT borid FROM Borrowing WHERE callNumber=(?) AND copyNo=(?) AND inDate IS NULL");
+					
+					ps.setString(1, callNumberField.getText());
+					
+					int tempCopyNum = Integer.parseInt(copyNumberField.getText());
+					ps.setInt(2, tempCopyNum);
+					
+					rs = ps.executeQuery();
+					ResultSetMetaData rsmd = rs.getMetaData();
+					if(rs != null) {
+						rs.next();
+						borid = rs.getInt("borid");
+						System.out.println("borid: " + borid);
+					}
+					
+					ps.close();
+				}
+				catch(SQLException ex){
+					System.out.println("Message: " + ex.getMessage());
+					System.exit(-1);
+				}
+				try{
+					ps = con.prepareStatement("SELECT bid FROM Borrowing WHERE callNumber=(?) AND copyNo=(?) AND inDate IS NULL");
+					
+					ps.setString(1, callNumberField.getText());
+					
+					int tempCopyNum = Integer.parseInt(copyNumberField.getText());
+					ps.setInt(2, tempCopyNum);
+					
+					rs = ps.executeQuery();
+					ResultSetMetaData rsmd = rs.getMetaData();
+					if(rs != null) {
+						rs.next();
+						bid = rs.getInt("bid");
+						System.out.println("bid: " + bid);
+					}
+					
+					ps.close();
+				}
+				catch(SQLException ex){
+					System.out.println("Message: " + ex.getMessage());
+					System.exit(-1);
+				}
+				try{
+					ps = con.prepareStatement("SELECT outDate FROM Borrowing WHERE callNumber=(?) AND copyNo=(?) AND inDate IS NULL");
+					
+					ps.setString(1, callNumberField.getText());
+					
+					int tempCopyNum = Integer.parseInt(copyNumberField.getText());
+					ps.setInt(2, tempCopyNum);
+					
+					rs = ps.executeQuery();
+					ResultSetMetaData rsmd = rs.getMetaData();
+					if(rs != null) {
+						rs.next();
+						outDate = rs.getDate("outDate");
+						System.out.println("outDate: " + outDate);
+					}
+					
+					ps.close();
+				}
+				catch(SQLException ex){
+					System.out.println("Message: " + ex.getMessage());
+					System.exit(-1);
+				}
+				GregorianCalendar inCalendar = new GregorianCalendar();
+				//inCalendar.add(Calendar.WEEK_OF_YEAR, 0);
+				GregorianCalendar outCalendar = new GregorianCalendar();
+				outCalendar.setTime(outDate);
+				outCalendar.add(Calendar.WEEK_OF_YEAR, 2);
+				long today = inCalendar.getTime().getTime();
+				long outDate2Weeks = outCalendar.getTime().getTime();
+				
+				try{
+					ps = con.prepareStatement("UPDATE Borrowing SET inDate=(?) WHERE bid=(?) AND callNumber=(?) AND outDate=(?)");
+					
+					java.sql.Date sqlDate = new java.sql.Date(inCalendar.getTime().getTime());
+					ps.setDate(1, sqlDate);
+					
+					ps.setInt(2, bid);
+					
+					ps.setString(3, callNumberField.getText());
+					
+					java.sql.Date sqlDate2 = new java.sql.Date(outDate.getTime());
+					ps.setDate(4, sqlDate2);
+					
+					ps.executeUpdate();
+					con.commit();
+					System.out.println("Borrowing successfully updated!");
+					ps.close();
+				}
+				catch(SQLException ex){
+					System.out.println("Message: " + ex.getMessage());
+					try{
+						con.rollback();
+					}
+					catch(SQLException ex2){
+						System.out.println("Message: " + ex2.getMessage());
+						System.exit(-1);
+					}
+				}
+				
+				// to compare the two dates, convert to long 
+				if(today > outDate2Weeks){
+					// create a fine entry here
+					try{
+						ps = con.prepareStatement("INSERT INTO Fine VALUES (fid_counter.nextval, ?, ?, ?, ?)");
+						
+						int amount = 10;
+						ps.setInt(1, amount);
+						
+						java.sql.Date sqlDate = new java.sql.Date(inCalendar.getTime().getTime());
+						ps.setDate(2, sqlDate);
+						
+						ps.setDate(3, null);
+						
+						ps.setInt(4, borid);
+						
+						ps.executeUpdate();
+						con.commit();
+						System.out.println("Fine successfully added!");
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						try{
+							con.rollback();
+						}
+						catch(SQLException ex2){
+							System.out.println("Message: " + ex2.getMessage());
+							System.exit(-1);
+						}
+					}
+				}
+				int hid = 0;
+				try{
+					ps = con.prepareStatement("SELECT hid FROM holdRequest WHERE callNumber=(?)");
+					
+					ps.setString(1, callNumberField.getText());
+					
+					rs = ps.executeQuery();
+					ResultSetMetaData rsmd = rs.getMetaData();
+					if(rs != null){
+						rs.next();
+						hid = rs.getInt("hid");
+					}
+					ps.close();
+				}
+				catch(SQLException ex){
+					System.out.println("Message: " + ex.getMessage());
+					System.exit(-1);
+				}
+				if(hid > 0){
+					try{
+						ps = con.prepareStatement("UPDATE BookCopy SET status=\'on-hold\' WHERE callNumber=(?) AND status=\'in\'");
+						
+						ps.setString(1, callNumberField.getText());
+						
+						ps.executeUpdate();
+						con.commit();
+						System.out.println("BookCopy seccuessfully held");
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						try{
+							con.rollback();
+						}
+						catch(SQLException ex2){
+							System.out.println("Message: " + ex2.getMessage());
+						}
+					}
+				}
 				returnFrame.dispose();
-				showMainMenu("clerck"); 
+				showMainMenu("clerk"); 
 			}
 		});
 		contentPane.add(okButton, c);
@@ -1141,7 +1345,7 @@ public class graphics implements ActionListener {
 		returnButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				returnFrame.dispose();
-				showMainMenu("clerck"); 
+				showMainMenu("clerk"); 
 			}
 		});
 		contentPane.add(returnButton, c);
@@ -1157,7 +1361,7 @@ public class graphics implements ActionListener {
 
 		returnFrame.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
-				showMainMenu("clerck");
+				showMainMenu("clerk");
 			}
 		});
 	}
