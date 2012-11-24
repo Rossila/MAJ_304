@@ -245,8 +245,6 @@ public class graphics implements ActionListener {
 		});
 
 		if (type.equals("student")) {
-			// temp int to hold the bid of the account to look in
-			final int bid = 22;
 			JLabel labelSearch = new JLabel("Search: ");
 			JButton searchButton = new JButton("Search");
 			JTextField searchTextField = new JTextField(30);
@@ -264,7 +262,7 @@ public class graphics implements ActionListener {
 			accountButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					mainMenu.dispose();
-					showAccount(bid);
+					showAccount();
 				}
 			});
 
@@ -1626,7 +1624,8 @@ public class graphics implements ActionListener {
 
 	}
 
-	private void showAccount(int bid) {
+	private void showAccount() {
+		int bid = Integer.parseInt(usernameField.getText());
 		final JFrame accountFrame = new JFrame("Welcome, username " + Integer.toString(bid));
 		accountFrame.setResizable(false);
 		accountFrame.getContentPane().setLayout(new GridBagLayout());
@@ -1700,11 +1699,35 @@ public class graphics implements ActionListener {
 		c.gridwidth = 1;
 		c.gridx = 0;
 		c.gridy= 1;
+		
+		// get user's hold requests
+		try {
+			ps = con.prepareStatement("SELECT UNIQUE book.title as title " +
+					"FROM Borrower b, book, HoldRequest h " +
+					"WHERE b.bid = h.bid AND book.callnumber = h.callnumber AND b.bid = ?");
+			ps.setInt(1, bid);
+			rs = ps.executeQuery();
+			
+			while(rs.next()){
+				// get the book title
+				title = rs.getString("title");
+								
+				JTextArea item = new JTextArea("Book title: " + title);
+				item.setEditable(false);
+				itemsHold.add(item);
+			}
+			// commit work 
+			con.commit();
+			ps.close();
+		} catch (SQLException e1) {
+			System.out.println("Message: " + e1.getMessage());
+		}
+		/*
 		for(int i=0; i<numbItemsHold; i++) {
 			JTextArea item = new JTextArea("name: name of book");
 			item.setEditable(false);
 			itemsHold.add(item);
-		}
+		}*/
 		itemsHold.setBorder(BorderFactory.createTitledBorder("Items on hold"));
 		accountFrame.add(itemsHold, c);
 
