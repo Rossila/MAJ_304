@@ -184,7 +184,7 @@ public class graphics implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		PreparedStatement  ps;
 		ResultSet rs;
-		String type = "clerk";
+		String type = "student";
 		if (connect(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 			// if the username and password are valid,
 			// remove the login window and display a text menu
@@ -247,15 +247,16 @@ public class graphics implements ActionListener {
 		if (type.equals("student")) {
 			JLabel labelSearch = new JLabel("Search: ");
 			JButton searchButton = new JButton("Search");
-			JTextField searchTextField = new JTextField(30);
+			String[] searchOptions = { "author", "title", "subject" };
+			final JComboBox searchMenu = new JComboBox(searchOptions);
+			final JTextField searchTextField = new JTextField(30);
 			searchButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					mainMenu.dispose();
-					showSearchResults();
+					showSearchResults(searchTextField.getText(), searchMenu.getSelectedObjects().toString());
 				}
 			});
-			String[] searchOptions = { "author", "title", "keyword" };
-			JComboBox searchMenu = new JComboBox(searchOptions);
+			
 			JTextArea welcomeString = new JTextArea("Welcome, username");
 			welcomeString.setEditable(false);
 			JButton accountButton = new JButton("My account");
@@ -1967,8 +1968,20 @@ public class graphics implements ActionListener {
 		accountFrame.setVisible(true);		
 	}
 
-	private void showSearchResults() {
+	private void showSearchResults(String keyword, String option) {
 		int searchResults = 6;
+		String btitle;
+		String bauthor;
+		String publisher;
+		String callnumber;
+		int year;
+		int inCount;
+		int outCount;
+		
+		PreparedStatement ps;
+		PreparedStatement ps2;
+		ResultSet rs;
+		ResultSet rs2;
 		final JFrame searchFrame = new JFrame("Search Results");
 		searchFrame.getContentPane().setLayout(new GridLayout(searchResults+1, 1));
 		JButton returnButton = new JButton("Return to Main Menu");
@@ -1978,34 +1991,89 @@ public class graphics implements ActionListener {
 				showMainMenu("student"); 
 			}
 		});
-		for(int i = 0; i<searchResults ; i++) {
-			JPanel searchPanel = new JPanel(new GridLayout());
-			searchPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-			JTextArea title = new JTextArea("title");
-			title.setEditable(false);
-			JTextArea author = new JTextArea("author");
-			author.setEditable(false);
-			JTextArea publisherAndYear = new JTextArea("publisher - year");
-			publisherAndYear.setEditable(false);
-			String statusString;
-			if(i/2 == 0) {
-				statusString = "out";
-			} else {
-				statusString = "in";
+		
+		// get checked out books
+		try {
+			if (option == "author") {
+				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as inCount " +
+						"FROM book b, bookcopy c " +
+						"WHERE b.mainauthor = ? AND c.callnumber = b.callnumber AND c.status = 'in' " +
+						"GROUP BY b.callnumber, b.title, b.mainauthor, b.publisher, b.year");
 			}
-			JTextArea status = new JTextArea(statusString);
-			status.setEditable(false);
-			if(statusString.equals("out")) {
-			   JButton hold = new JButton("Place a Hold");
-			   searchPanel.add(hold, GridBagConstraints.REMAINDER);
+			else if (option == "title") {
+				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as inCount " +
+						"FROM book b, bookcopy c " +
+						"WHERE b.title = ? AND c.callnumber = b.callnumber AND c.status = 'in' " +
+						"GROUP BY b.callnumber, b.title, b.mainauthor, b.publisher, b.year");
 			}
-			searchPanel.add(status, GridBagConstraints.REMAINDER);
-			searchPanel.add(publisherAndYear, GridBagConstraints.REMAINDER);
-			searchPanel.add(author, GridBagConstraints.REMAINDER);
-			searchPanel.add(title, GridBagConstraints.REMAINDER);
-			searchPanel.setVisible(true);
-            searchFrame.getContentPane().add(searchPanel);
+			else{
+				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as inCount " +
+						"FROM book b, bookcopy c, hassubject s " +
+						"WHERE s.subject = ? AND s.callnumber = b.callnumber AND c.callnumber = b.callnumber AND c.status = 'in' " +
+						"GROUP BY b.callnumber, b.title, b.mainauthor, b.publisher, b.year");
+				
+			}
+			ps2 = con.prepareStatement("SELECT count(*) as outCount " +
+					"FROM book b, bookcopy c " +
+					"WHERE b.callnumber = ? AND c.status = 'out' AND c.callnumber = b.callnumber");
+
+			ps.setString(1, keyword);
+			rs = ps.executeQuery();
+			
+			while(rs.next()){
+				// get the book title
+				callnumber = rs.getString("cno");
+				btitle = rs.getString("title");
+				bauthor = rs.getString("author");
+				publisher = rs.getString("publisher");
+				year = rs.getInt("year");
+				inCount = rs.getInt("inCount");
+				
+				ps2.setString(1, callnumber);
+				rs2 = ps2.executeQuery();
+				if(rs2.next()){
+					outCount = rs2.getInt("outCount");
+				}
+				else
+					outCount = 0;
+				
+				JPanel searchPanel = new JPanel(new GridLayout());
+				searchPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+				JTextArea title = new JTextArea("title: " + btitle);
+				title.setEditable(false);
+				JTextArea author = new JTextArea("author: " + bauthor);
+				author.setEditable(false);
+				JTextArea publisherAndYear = new JTextArea("publisher: " + publisher + "-" + Integer.toString(year));
+				publisherAndYear.setEditable(false);
+				JTextArea copiesIn = new JTextArea(" Copies in: " + Integer.toString(inCount));
+				copiesIn.setEditable(false);
+				JTextArea copiesOut = new JTextArea(" Copies out: " + Integer.toString(outCount));
+				copiesIn.setEditable(false);
+				/*String statusString = "out";
+
+				JTextArea status = new JTextArea(statusString);
+				status.setEditable(false);
+				if(statusString.equals("out")) {
+				   JButton hold = new JButton("Place a Hold");
+				   searchPanel.add(hold, GridBagConstraints.REMAINDER);
+				}
+				searchPanel.add(status, GridBagConstraints.REMAINDER);*/
+				searchPanel.add(copiesOut, GridBagConstraints.REMAINDER);
+				searchPanel.add(copiesIn, GridBagConstraints.REMAINDER);
+				searchPanel.add(publisherAndYear, GridBagConstraints.REMAINDER);
+				searchPanel.add(author, GridBagConstraints.REMAINDER);
+				searchPanel.add(title, GridBagConstraints.REMAINDER);
+				searchPanel.setVisible(true);
+	            searchFrame.getContentPane().add(searchPanel);
+			}
+			// commit work 
+			con.commit();
+			ps.close();
+			ps2.close();
+		} catch (SQLException e1) {
+			System.out.println("Message: " + e1.getMessage());
 		}
+		
 		searchFrame.getContentPane().add(returnButton);
 		Dimension d = mainMenu.getToolkit().getScreenSize();
 		Rectangle r = mainMenu.getBounds();
