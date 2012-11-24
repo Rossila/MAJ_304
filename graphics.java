@@ -1451,25 +1451,6 @@ public class graphics implements ActionListener {
 			
 			con.commit();
 			ps.close();
-			
-			while(rs.next()){
-				// get the book title
-				title = rs.getString("title");
-				
-				// get the book's outdate
-				sqlDate = rs.getDate("outdate");
-				gregCalendar.setTime(sqlDate);
-				// calculate the book's due date:
-				gregCalendar.add(Calendar.DATE, timelimit*7);
-				sqlDate = new java.sql.Date(gregCalendar.getTime().getTime());
-				
-				JTextArea item = new JTextArea("Book title: "+ rs.getString("title") + " Due date: " + sqlDate.toString());
-				item.setEditable(false);
-				itemsBorr.add(item);
-			}
-			// commit work 
-			con.commit();
-			ps.close();
 		} catch (SQLException e1) {
 			System.out.println("Message: " + e1.getMessage());
 		}
@@ -1480,7 +1461,7 @@ public class graphics implements ActionListener {
 		c.gridy = 0;
 		c.gridwidth = 2;
 		
-		// get overdue books
+		// get checked out books
 		try {
 			ps = con.prepareStatement("SELECT UNIQUE book.title as title, bo.outDate as outdate " +
 					"FROM Borrower b, borrowing bo, book " +
@@ -1510,12 +1491,7 @@ public class graphics implements ActionListener {
 		} catch (SQLException e1) {
 			System.out.println("Message: " + e1.getMessage());
 		}
-		/*
-		for(int i=0; i<numbItemsCheckedOut; i++) {
-			JTextArea item = new JTextArea("name: name of book"+ "         " + "due date: date the item has to be returned");
-			item.setEditable(false);
-			itemsBorr.add(item);
-		}*/
+
 		itemsBorr.setBorder(BorderFactory.createTitledBorder("Items checked out"));
 		accountFrame.add(itemsBorr, c);
 
