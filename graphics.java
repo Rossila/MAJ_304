@@ -184,7 +184,7 @@ public class graphics implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		PreparedStatement  ps;
 		ResultSet rs;
-		String type = "student";
+		String type = "clerk";
 		if (connect(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 			// if the username and password are valid,
 			// remove the login window and display a text menu
@@ -1377,30 +1377,75 @@ public class graphics implements ActionListener {
 		c.gridx = 1;
 		contentPane.add(cardNumberField, c);
         int overdueItems = 5;
-		for(int i = 0; i<overdueItems; i++) {
-	     	c.gridx=0;
-		    c.gridy= startingY;
-		   JTextArea TitleArea = new JTextArea("overdue Item Title");
-		   TitleArea.setEditable(false);
-		   contentPane.add(TitleArea, c);
-		   c.gridx=1;
-		   c.gridy=startingY++;
-		   JTextArea cardNumberArea = new JTextArea("card Number of borrower");
-		   cardNumberArea.setEditable(false);
-		   contentPane.add(cardNumberArea, c);
-		}
+        
+        PreparedStatement ps;
+		ResultSet rs;
+		String title;
+		int bid;
+		int copyno;
+		String email;
+        
+        // get list of overdue books
+ 		try {
+ 			ps = con.prepareStatement("SELECT UNIQUE book.title as title, b.bid as bid, bo.copyno as copyno " +
+ 					"FROM borrowing bo, book, borrower b, borrowertype t " +
+ 					"WHERE bo.indate is null AND b.bid = bo.bid AND b.type = t.type AND (bo.outdate + t.booktimelimit * 7) > sysdate " +
+ 					"AND book.callnumber = bo.callnumber");
+ 			rs = ps.executeQuery();
+ 			
+ 			while(rs.next()){
+ 				// get the book title
+ 				title = rs.getString("title");
+ 				bid = rs.getInt("bid");
+ 				copyno = rs.getInt("copyno");
+ 				
+ 				c.gridx=0;
+ 			    c.gridy= startingY;
+ 			    JTextArea TitleArea = new JTextArea("Title: " + title + " Copy No: " + Integer.toString(copyno));
+ 			    TitleArea.setEditable(false);
+ 			    contentPane.add(TitleArea, c);
+ 			    c.gridx=1;
+ 			    c.gridy=startingY++;
+ 			    JTextArea cardNumberArea = new JTextArea("Borrower bid: " + Integer.toString(bid));
+ 			    cardNumberArea.setEditable(false);
+ 			    contentPane.add(cardNumberArea, c);
+ 			}
+ 			// commit work 
+ 			con.commit();
+ 			ps.close();
+ 		} catch (SQLException e1) {
+ 			System.out.println("Message: " + e1.getMessage());
+ 		}
+        
 		JTextArea emailLabel = new JTextArea("\nEmail the selected borrowers:");
 		emailLabel.setEditable(false);
 		c.gridx = 0;
 		c.gridy = startingY++;
 		contentPane.add(emailLabel,c);
 
-		int numberBorrowerOverdue = 3;
-		for(int j = 0; j<numberBorrowerOverdue; j++) {
-			JCheckBox borrower = new JCheckBox("name of borrower (email address)");
-			c.gridy=startingY++;
-			contentPane.add(borrower, c);
-		}
+		// get unique borrowers with overdue books
+ 		try {
+ 			ps = con.prepareStatement("SELECT UNIQUE b.bid as bid, b.emailAddress as email " +
+ 					"FROM borrowing bo, book, borrower b, borrowertype t " +
+ 					"WHERE bo.indate is null AND b.bid = bo.bid AND b.type = t.type AND (bo.outdate + t.booktimelimit * 7) > sysdate " +
+ 					"AND book.callnumber = bo.callnumber");
+ 			rs = ps.executeQuery();
+ 			
+ 			while(rs.next()){
+ 				// get the book title
+ 				bid = rs.getInt("bid");
+ 				email = rs.getString("email");
+ 				
+ 				JCheckBox borrower = new JCheckBox("Borrower: " + Integer.toString(bid) + " (" + email + ")");
+ 				c.gridy=startingY++;
+ 				contentPane.add(borrower, c);
+ 			}
+ 			// commit work 
+ 			con.commit();
+ 			ps.close();
+ 		} catch (SQLException e1) {
+ 			System.out.println("Message: " + e1.getMessage());
+ 		}
 
 		JButton okButton = new JButton("Email the selected users");
 		c.gridx = 0;

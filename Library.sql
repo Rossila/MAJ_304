@@ -18,7 +18,7 @@ create table Borrower
 	name varchar(20) not null,
 	address	varchar(50),
 	phone integer,
-	emailAddress varchar(20),
+	emailAddress varchar(20) not null,
 	sinOrStNo integer not null unique,
 	expiryDate date not null,
 	type varchar(20) not null,
@@ -87,3 +87,18 @@ insert into BorrowerType values
 insert into BorrowerType values
 	('staff', 6);
 
+create sequence bid_counter
+	start with 1
+	increment by 1;
+
+create sequence borid_counter
+	start with 1
+	increment by 1;
+
+create sequence hid_counter
+	start with 1
+	increment by 1;
+
+create sequence fid_counter
+	start with 1
+	increment by 1;
