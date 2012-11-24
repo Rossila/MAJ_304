@@ -184,7 +184,7 @@ public class graphics implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		PreparedStatement  ps;
 		ResultSet rs;
-		String type = "student";
+		String type = "clerk";
 		if (connect(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 			// if the username and password are valid,
 			// remove the login window and display a text menu
@@ -1169,10 +1169,9 @@ public class graphics implements ActionListener {
 					
 					rs = ps.executeQuery();
 					ResultSetMetaData rsmd = rs.getMetaData();
-					if(rs != null) {
-						rs.next();
+					if(rs.next()) {
 						borid = rs.getInt("borid");
-						System.out.println("borid: " + borid);
+						//System.out.println("borid: " + borid);
 					}
 					
 					ps.close();
@@ -1191,10 +1190,9 @@ public class graphics implements ActionListener {
 					
 					rs = ps.executeQuery();
 					ResultSetMetaData rsmd = rs.getMetaData();
-					if(rs != null) {
-						rs.next();
+					if(rs.next()) {
 						bid = rs.getInt("bid");
-						System.out.println("bid: " + bid);
+						//System.out.println("bid: " + bid);
 					}
 					
 					ps.close();
@@ -1213,10 +1211,9 @@ public class graphics implements ActionListener {
 					
 					rs = ps.executeQuery();
 					ResultSetMetaData rsmd = rs.getMetaData();
-					if(rs != null) {
-						rs.next();
+					if(rs.next()) {
 						outDate = rs.getDate("outDate");
-						System.out.println("outDate: " + outDate);
+						//System.out.println("outDate: " + outDate);
 					}
 					
 					ps.close();
@@ -1302,8 +1299,7 @@ public class graphics implements ActionListener {
 					
 					rs = ps.executeQuery();
 					ResultSetMetaData rsmd = rs.getMetaData();
-					if(rs != null){
-						rs.next();
+					if(rs.next()){
 						hid = rs.getInt("hid");
 					}
 					ps.close();
