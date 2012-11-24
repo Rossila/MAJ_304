@@ -184,7 +184,7 @@ public class graphics implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		PreparedStatement  ps;
 		ResultSet rs;
-		String type = "clerk";
+		String type = "student";
 		if (connect(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 			// if the username and password are valid,
 			// remove the login window and display a text menu
@@ -877,8 +877,8 @@ public class graphics implements ActionListener {
 						rs = ps.executeQuery();
 						
 						// get the maximum existing copyNo for this book
-						rs.next();
-						copyNumber = rs.getInt("copyNo");
+						if(rs.next());
+							copyNumber = rs.getInt("copyNo");
 						ps.close();
 					}
 					catch(SQLException ex){
@@ -1411,7 +1411,7 @@ public class graphics implements ActionListener {
 			public void actionPerformed(ActionEvent e) {
 				JOptionPane.showMessageDialog(null, "Emails sent to selected users", "Emails sent", JOptionPane.INFORMATION_MESSAGE);		
 			  checkOutFrame.dispose();
-			  showMainMenu("clerck");
+			  showMainMenu("clerk");
 			}
 		});
 		contentPane.add(okButton, c);
@@ -1422,7 +1422,7 @@ public class graphics implements ActionListener {
 		returnButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				checkOutFrame.dispose();
-				showMainMenu("clerck"); 
+				showMainMenu("clerk"); 
 			}
 		});
 		contentPane.add(returnButton, c);
@@ -1438,7 +1438,7 @@ public class graphics implements ActionListener {
 
 		checkOutFrame.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
-				showMainMenu("clerck");
+				showMainMenu("clerk");
 			}
 		});
 	}
@@ -1593,7 +1593,7 @@ public class graphics implements ActionListener {
 				}	
 
 				addBorrFrame.dispose();
-				showMainMenu("clerck"); 
+				showMainMenu("clerk"); 
 			}
 		});
 		contentPane.add(okButton, c);
@@ -1604,7 +1604,7 @@ public class graphics implements ActionListener {
 		returnButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				addBorrFrame.dispose();
-				showMainMenu("clerck"); 
+				showMainMenu("clerk"); 
 			}
 		});
 		contentPane.add(returnButton, c);
@@ -1620,7 +1620,7 @@ public class graphics implements ActionListener {
 
 		addBorrFrame.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
-				showMainMenu("clerck");
+				showMainMenu("clerk");
 			}
 		});
 
@@ -1646,8 +1646,8 @@ public class graphics implements ActionListener {
 										"WHERE b.bid = ? AND bt.type = b.type");
 			ps.setInt(1, bid);
 			rs = ps.executeQuery();
-			rs.next();
-			timelimit = rs.getInt("bookTimeLimit");
+			if(rs.next())
+				timelimit = rs.getInt("bookTimeLimit");
 			
 			con.commit();
 			ps.close();
@@ -1713,7 +1713,7 @@ public class graphics implements ActionListener {
 		c.gridx = 1;
 		finePanel.setBorder(BorderFactory.createTitledBorder("Fines"));
 		JTextArea paymentOptions = new JTextArea("Total fine: amount \n PaymentOptions: \n" +
-				"Option #1: Pay by cash. Go to the clerck at the nearest library branch to pay your fine. \n" +
+				"Option #1: Pay by cash. Go to the clerk at the nearest library branch to pay your fine. \n" +
 		"Option #2: Pay by credit card.");
 		paymentOptions.setEditable(false);
 		finePanel.add(paymentOptions);
@@ -1782,6 +1782,75 @@ public class graphics implements ActionListener {
 								expiryDate.setForeground(Color.RED);
 							}
 						} else {
+							PreparedStatement ps;
+							ResultSet rs;
+							int bid = Integer.parseInt(usernameField.getText());
+							GregorianCalendar gregCalendar = new GregorianCalendar();
+							int count = 0;
+							try{
+								// used to get the array size since there can be multiple borid's associated with the user bid
+								ps = con.prepareStatement("SELECT count(borid) FROM Borrowing WHERE bid=(?)");
+								
+								ps.setInt(1, bid);
+								
+								rs = ps.executeQuery();
+								if(rs.next())
+									count = rs.getInt("count(borid)");
+								ps.close();
+							}
+							catch(SQLException ex){
+								System.out.println("Message: " + ex.getMessage());
+								System.exit(-1);
+							}
+							int[] borid;
+							borid = new int[count];
+							try{
+								// fill the borid array with values
+								ps = con.prepareStatement("SELECT borid FROM Borrowing WHERE bid=(?)");
+								
+								ps.setInt(1, bid);
+								
+								rs = ps.executeQuery();
+								
+								int i=0;
+								while(rs.next()){
+									borid[i] = rs.getInt("borid");
+									i++;	
+								}
+								
+								ps.close();
+							}
+							catch(SQLException ex){
+								System.out.println("Message: " + ex.getMessage());
+								System.exit(-1);
+							}
+							for(int i=0; i<count; i++){
+								try{
+									// will pay all the fines associated with the borid's in the array
+									// if the paidDate field has a date in it, the fine doesn't need to be paid
+									ps = con.prepareStatement("UPDATE Fine SET paidDate=(?) WHERE borid=(?) AND paidDate IS NULL");
+									
+									java.sql.Date sqlDate = new java.sql.Date(gregCalendar.getTime().getTime());
+									ps.setDate(1, sqlDate);
+																				
+									ps.setInt(2, borid[i]);
+									
+									ps.executeUpdate();
+									con.commit();
+									System.out.println("Fine successfully paid");
+									ps.close();
+								}
+								catch(SQLException ex){
+									System.out.println("Message: " + ex.getMessage());
+									try{
+										con.rollback();
+									}
+									catch(SQLException ex2){
+										System.out.println("Message: " + ex2.getMessage());
+										System.exit(-1);
+									}
+								}
+							}
 							creditCard.dispose();
 						}
 					   }
