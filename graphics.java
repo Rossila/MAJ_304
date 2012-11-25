@@ -162,14 +162,14 @@ public class graphics implements ActionListener {
 			rs = ps.executeQuery();
 			con.commit();
 			
-			rs.next();
-			bid_rd = rs.getInt("bid");
-			pw_rd = rs.getString("password");
 			
+			if(rs.next()){
+				bid_rd = rs.getInt("bid");
+				pw_rd = rs.getString("password");
+				if (bid_rd == bid && pw_rd.equals(password) == true)
+					return true;
+			}
 			ps.close();
-			
-			if (bid_rd == bid && pw_rd.equals(password) == true)
-				return true;
 			
 		} catch (SQLException e1) {
 			System.out.println("Message: " + e1.getMessage());
@@ -185,6 +185,7 @@ public class graphics implements ActionListener {
 		PreparedStatement  ps;
 		ResultSet rs;
 		String type = "librarian";
+
 		if (connect(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 			// if the username and password are valid,
 			// remove the login window and display a text menu
@@ -249,15 +250,16 @@ public class graphics implements ActionListener {
 			final int bid = 22;
 			JLabel labelSearch = new JLabel("Search: ");
 			JButton searchButton = new JButton("Search");
-			JTextField searchTextField = new JTextField(30);
+			String[] searchOptions = { "author", "title", "subject" };
+			final JComboBox searchMenu = new JComboBox(searchOptions);
+			final JTextField searchTextField = new JTextField(30);
 			searchButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					mainMenu.dispose();
-					showSearchResults();
+					showSearchResults(searchTextField.getText(), searchMenu.getSelectedItem().toString());
 				}
 			});
-			String[] searchOptions = { "author", "title", "keyword" };
-			JComboBox searchMenu = new JComboBox(searchOptions);
+			
 			JTextArea welcomeString = new JTextArea("Welcome, username");
 			welcomeString.setEditable(false);
 			JButton accountButton = new JButton("My account");
@@ -1594,30 +1596,75 @@ public class graphics implements ActionListener {
 		c.gridx = 1;
 		contentPane.add(cardNumberField, c);
         int overdueItems = 5;
-		for(int i = 0; i<overdueItems; i++) {
-	     	c.gridx=0;
-		    c.gridy= startingY;
-		   JTextArea TitleArea = new JTextArea("overdue Item Title");
-		   TitleArea.setEditable(false);
-		   contentPane.add(TitleArea, c);
-		   c.gridx=1;
-		   c.gridy=startingY++;
-		   JTextArea cardNumberArea = new JTextArea("card Number of borrower");
-		   cardNumberArea.setEditable(false);
-		   contentPane.add(cardNumberArea, c);
-		}
+        
+        PreparedStatement ps;
+		ResultSet rs;
+		String title;
+		int bid;
+		int copyno;
+		String email;
+        
+        // get list of overdue books
+ 		try {
+ 			ps = con.prepareStatement("SELECT UNIQUE book.title as title, b.bid as bid, bo.copyno as copyno " +
+ 					"FROM borrowing bo, book, borrower b, borrowertype t " +
+ 					"WHERE bo.indate is null AND b.bid = bo.bid AND b.type = t.type AND (bo.outdate + t.booktimelimit * 7) < sysdate " +
+ 					"AND book.callnumber = bo.callnumber");
+ 			rs = ps.executeQuery();
+ 			
+ 			while(rs.next()){
+ 				// get the book title
+ 				title = rs.getString("title");
+ 				bid = rs.getInt("bid");
+ 				copyno = rs.getInt("copyno");
+ 				
+ 				c.gridx=0;
+ 			    c.gridy= startingY;
+ 			    JTextArea TitleArea = new JTextArea("Title: " + title + " Copy No: " + Integer.toString(copyno));
+ 			    TitleArea.setEditable(false);
+ 			    contentPane.add(TitleArea, c);
+ 			    c.gridx=1;
+ 			    c.gridy=startingY++;
+ 			    JTextArea cardNumberArea = new JTextArea("Borrower bid: " + Integer.toString(bid));
+ 			    cardNumberArea.setEditable(false);
+ 			    contentPane.add(cardNumberArea, c);
+ 			}
+ 			// commit work 
+ 			con.commit();
+ 			ps.close();
+ 		} catch (SQLException e1) {
+ 			System.out.println("Message: " + e1.getMessage());
+ 		}
+        
 		JTextArea emailLabel = new JTextArea("\nEmail the selected borrowers:");
 		emailLabel.setEditable(false);
 		c.gridx = 0;
 		c.gridy = startingY++;
 		contentPane.add(emailLabel,c);
 
-		int numberBorrowerOverdue = 3;
-		for(int j = 0; j<numberBorrowerOverdue; j++) {
-			JCheckBox borrower = new JCheckBox("name of borrower (email address)");
-			c.gridy=startingY++;
-			contentPane.add(borrower, c);
-		}
+		// get unique borrowers with overdue books
+ 		try {
+ 			ps = con.prepareStatement("SELECT UNIQUE b.bid as bid, b.emailAddress as email " +
+ 					"FROM borrowing bo, book, borrower b, borrowertype t " +
+ 					"WHERE bo.indate is null AND b.bid = bo.bid AND b.type = t.type AND (bo.outdate + t.booktimelimit * 7) < sysdate " +
+ 					"AND book.callnumber = bo.callnumber");
+ 			rs = ps.executeQuery();
+ 			
+ 			while(rs.next()){
+ 				// get the book title
+ 				bid = rs.getInt("bid");
+ 				email = rs.getString("email");
+ 				
+ 				JCheckBox borrower = new JCheckBox("Borrower: " + Integer.toString(bid) + " (" + email + ")");
+ 				c.gridy=startingY++;
+ 				contentPane.add(borrower, c);
+ 			}
+ 			// commit work 
+ 			con.commit();
+ 			ps.close();
+ 		} catch (SQLException e1) {
+ 			System.out.println("Message: " + e1.getMessage());
+ 		}
 
 		JButton okButton = new JButton("Email the selected users");
 		c.gridx = 0;
@@ -1915,11 +1962,30 @@ public class graphics implements ActionListener {
 		c.gridwidth = 1;
 		c.gridx = 0;
 		c.gridy= 1;
-		for(int i=0; i<numbItemsHold; i++) {
-			JTextArea item = new JTextArea("name: name of book");
-			item.setEditable(false);
-			itemsHold.add(item);
+		
+		// get user's hold requests
+		try {
+			ps = con.prepareStatement("SELECT UNIQUE book.title as title " +
+					"FROM Borrower b, book, HoldRequest h " +
+					"WHERE b.bid = h.bid AND book.callnumber = h.callnumber AND b.bid = ?");
+			ps.setInt(1, bid);
+			rs = ps.executeQuery();
+			
+			while(rs.next()){
+				// get the book title
+				title = rs.getString("title");
+								
+				JTextArea item = new JTextArea("Book title: " + title);
+				item.setEditable(false);
+				itemsHold.add(item);
+			}
+			// commit work 
+			con.commit();
+			ps.close();
+		} catch (SQLException e1) {
+			System.out.println("Message: " + e1.getMessage());
 		}
+
 		itemsHold.setBorder(BorderFactory.createTitledBorder("Items on hold"));
 		accountFrame.add(itemsHold, c);
 
@@ -1927,7 +1993,29 @@ public class graphics implements ActionListener {
 		c.gridy = 1;
 		c.gridx = 1;
 		finePanel.setBorder(BorderFactory.createTitledBorder("Fines"));
-		JTextArea paymentOptions = new JTextArea("Total fine: amount \n PaymentOptions: \n" +
+		
+		// get user's total fine amount
+		int totalFine = 0;
+		try {
+			ps = con.prepareStatement("SELECT UNIQUE f.amount as amount " +
+					"FROM Borrower b, borrowing bo, fine f " +
+					"WHERE b.bid = ? AND bo.bid = b.bid AND f.borid = bo.borid " +
+					"AND f.paiddate IS NULL");
+			ps.setInt(1, bid);
+			rs = ps.executeQuery();
+			
+			while(rs.next()){
+				// get the fine amount associated with this borrowing
+				totalFine = totalFine + rs.getInt("amount");				
+			}
+			// commit work 
+			con.commit();
+			ps.close();
+		} catch (SQLException e1) {
+			System.out.println("Message: " + e1.getMessage());
+		}
+		
+		JTextArea paymentOptions = new JTextArea("Total fine: $" + Integer.toString(totalFine) + "\nPaymentOptions: \n" +
 				"Option #1: Pay by cash. Go to the clerk at the nearest library branch to pay your fine. \n" +
 		"Option #2: Pay by credit card.");
 		paymentOptions.setEditable(false);
@@ -2097,8 +2185,21 @@ public class graphics implements ActionListener {
 		accountFrame.setVisible(true);		
 	}
 
-	private void showSearchResults() {
+	private void showSearchResults(String keyword, String option) {
 		int searchResults = 6;
+		String btitle;
+		String bauthor;
+		String publisher;
+		String callnumber;
+		int year;
+		int inCount;
+		int outCount;
+		int totalCount;
+		
+		PreparedStatement ps;
+		PreparedStatement ps2;
+		ResultSet rs;
+		ResultSet rs2;
 		final JFrame searchFrame = new JFrame("Search Results");
 		searchFrame.getContentPane().setLayout(new GridLayout(searchResults+1, 1));
 		JButton returnButton = new JButton("Return to Main Menu");
@@ -2108,34 +2209,91 @@ public class graphics implements ActionListener {
 				showMainMenu("student"); 
 			}
 		});
-		for(int i = 0; i<searchResults ; i++) {
-			JPanel searchPanel = new JPanel(new GridLayout());
-			searchPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-			JTextArea title = new JTextArea("title");
-			title.setEditable(false);
-			JTextArea author = new JTextArea("author");
-			author.setEditable(false);
-			JTextArea publisherAndYear = new JTextArea("publisher - year");
-			publisherAndYear.setEditable(false);
-			String statusString;
-			if(i/2 == 0) {
-				statusString = "out";
-			} else {
-				statusString = "in";
+		
+		// get checked out books
+		try {
+			if (option == "author") {
+				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as totalCount " +
+						"FROM book b, bookcopy c " +
+						"WHERE b.mainauthor = ? AND c.callnumber = b.callnumber " +
+						"GROUP BY b.callnumber, b.title, b.mainauthor, b.publisher, b.year");
 			}
-			JTextArea status = new JTextArea(statusString);
-			status.setEditable(false);
-			if(statusString.equals("out")) {
-			   JButton hold = new JButton("Place a Hold");
-			   searchPanel.add(hold, GridBagConstraints.REMAINDER);
+			else if (option == "title") {
+				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as totalCount " +
+						"FROM book b, bookcopy c " +
+						"WHERE b.title = ? AND c.callnumber = b.callnumber " +
+						"GROUP BY b.callnumber, b.title, b.mainauthor, b.publisher, b.year");
 			}
-			searchPanel.add(status, GridBagConstraints.REMAINDER);
-			searchPanel.add(publisherAndYear, GridBagConstraints.REMAINDER);
-			searchPanel.add(author, GridBagConstraints.REMAINDER);
-			searchPanel.add(title, GridBagConstraints.REMAINDER);
-			searchPanel.setVisible(true);
-            searchFrame.getContentPane().add(searchPanel);
+			else{
+				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as totalCount " +
+						"FROM book b, bookcopy c, hassubject s " +
+						"WHERE s.subject = ? AND s.callnumber = b.callnumber AND c.callnumber = b.callnumber " +
+						"GROUP BY b.callnumber, b.title, b.mainauthor, b.publisher, b.year");
+				
+			}
+			ps2 = con.prepareStatement("SELECT count(*) as inCount " +
+					"FROM book b, bookcopy c " +
+					"WHERE b.callnumber = ? AND c.status = 'in' AND c.callnumber = b.callnumber");
+
+			ps.setString(1, keyword);
+			rs = ps.executeQuery();
+			
+			while(rs.next()){
+				// get the book title
+				callnumber = rs.getString("cno");
+				btitle = rs.getString("title");
+				bauthor = rs.getString("author");
+				publisher = rs.getString("publisher");
+				year = rs.getInt("year");
+				totalCount = rs.getInt("totalCount");
+				
+				ps2.setString(1, callnumber);
+				rs2 = ps2.executeQuery();
+				if(rs2.next()){
+					inCount = rs2.getInt("inCount");
+				}
+				else
+					inCount = 0;
+				
+				outCount = totalCount - inCount;
+				
+				JPanel searchPanel = new JPanel(new GridLayout());
+				searchPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+				JTextArea title = new JTextArea("title: " + btitle);
+				title.setEditable(false);
+				JTextArea author = new JTextArea("author: " + bauthor);
+				author.setEditable(false);
+				JTextArea publisherAndYear = new JTextArea("publisher: " + publisher + "-" + Integer.toString(year));
+				publisherAndYear.setEditable(false);
+				JTextArea copiesIn = new JTextArea(" Copies in: " + Integer.toString(inCount));
+				copiesIn.setEditable(false);
+				JTextArea copiesOut = new JTextArea(" Copies out: " + Integer.toString(outCount));
+				copiesIn.setEditable(false);
+				/*String statusString = "out";
+
+				JTextArea status = new JTextArea(statusString);
+				status.setEditable(false);
+				if(statusString.equals("out")) {
+				   JButton hold = new JButton("Place a Hold");
+				   searchPanel.add(hold, GridBagConstraints.REMAINDER);
+				}
+				searchPanel.add(status, GridBagConstraints.REMAINDER);*/
+				searchPanel.add(copiesOut, GridBagConstraints.REMAINDER);
+				searchPanel.add(copiesIn, GridBagConstraints.REMAINDER);
+				searchPanel.add(publisherAndYear, GridBagConstraints.REMAINDER);
+				searchPanel.add(author, GridBagConstraints.REMAINDER);
+				searchPanel.add(title, GridBagConstraints.REMAINDER);
+				searchPanel.setVisible(true);
+	            searchFrame.getContentPane().add(searchPanel);
+			}
+			// commit work 
+			con.commit();
+			ps.close();
+			ps2.close();
+		} catch (SQLException e1) {
+			System.out.println("Message: " + e1.getMessage());
 		}
+		
 		searchFrame.getContentPane().add(returnButton);
 		Dimension d = mainMenu.getToolkit().getScreenSize();
 		Rectangle r = mainMenu.getBounds();
