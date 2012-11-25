@@ -194,9 +194,9 @@ insert into hasSubject values
 	('l23422', 'Food');
 
 insert into BookCopy values
-	('a12345', 1, 'in');
+	('a12345', 1, 'out');
 insert into BookCopy values
-	('a12345', 2, 'in');
+	('a12345', 2, 'out');
 insert into BookCopy values
 	('a12345', 3, 'in');
 insert into BookCopy values
@@ -251,3 +251,9 @@ insert into BookCopy values
 	('k08127', 2, 'in');
 insert into BookCopy values
 	('l23422', 1, 'in');
+
+
+insert into borrowing values
+	(borid_counter.nextval, 2, 'a12345', 1, '12-10-01', null);
+insert into borrowing values
+	(borid_counter.nextval, 4, 'a12345', 2, '12-10-01', null);
