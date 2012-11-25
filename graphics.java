@@ -184,7 +184,7 @@ public class graphics implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		PreparedStatement  ps;
 		ResultSet rs;
-		String type = "student";
+		String type = "librarian";
 		if (connect(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 			// if the username and password are valid,
 			// remove the login window and display a text menu
@@ -245,6 +245,8 @@ public class graphics implements ActionListener {
 		});
 
 		if (type.equals("student")) {
+			// temp int to hold the bid of the account to look in
+			final int bid = 22;
 			JLabel labelSearch = new JLabel("Search: ");
 			JButton searchButton = new JButton("Search");
 			JTextField searchTextField = new JTextField(30);
@@ -262,7 +264,7 @@ public class graphics implements ActionListener {
 			accountButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					mainMenu.dispose();
-					showAccount();
+					showAccount(bid);
 				}
 			});
 
@@ -580,7 +582,7 @@ public class graphics implements ActionListener {
 		checkOutItemsFrame.setContentPane(contentPane);
 		GridBagConstraints c = new GridBagConstraints();
 
-		c.gridx=0;
+		/*c.gridx=0;
 		c.gridy=0;
 		JTextArea yearArea = new JTextArea("Generate report by subject: ");
 		yearArea.setEditable(false);
@@ -588,64 +590,239 @@ public class graphics implements ActionListener {
 		String[] options = {"none", "subject1", "subject2"};
 		final JComboBox optionsBox = new JComboBox(options);
 		c.gridx = 1;
-		contentPane.add(optionsBox, c);
+		contentPane.add(optionsBox, c);*/
+		
+		c.gridx=0;
+		c.gridy=0;
+		JTextArea subjectArea = new JTextArea("Generate report by subject: ");
+		subjectArea.setEditable(false);
+		contentPane.add(subjectArea, c);
+		final JTextField subjectField = new JTextField(30);
+		c.gridx = 1;
+		contentPane.add(subjectField, c);
 
 		JButton okButton = new JButton("Generate Report");
 		c.gridx = 0;
 		c.gridy = 2;
 		okButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				final JFrame popularItemsReportFrame = new JFrame("Generate a report with the most popular items in a given year");
+				final JFrame popularItemsReportFrame = new JFrame("Report of checked-out books");
 				JPanel contentPaneReport = new JPanel(new GridBagLayout());
 				popularItemsReportFrame.setContentPane(contentPaneReport);
 				GridBagConstraints c = new GridBagConstraints();
-				String choice = optionsBox.getSelectedItem().toString();
+				//String choice = optionsBox.getSelectedItem().toString();
 
-				int numberResults = 6;
-				c.gridx=0;
-				c.gridy = 0;
-				JTextArea titleLabel = new JTextArea("Title");
-				titleLabel.setEditable(false);
-				contentPaneReport.add(titleLabel,c);
-				JTextArea callNumberLabel = new JTextArea("Call Number");
-				callNumberLabel.setEditable(false);
-				c.gridx=1;
-				contentPaneReport.add(callNumberLabel, c);
-				JTextArea checkedOutLabel = new JTextArea("Checked Out");
-				checkedOutLabel.setEditable(false);
-				c.gridx=2;
-				contentPaneReport.add(checkedOutLabel,c);
-				JTextArea dueDateLabel = new JTextArea("Due Date");
-				dueDateLabel.setEditable(false);
-				c.gridx=3;
-				contentPaneReport.add(dueDateLabel, c);
-				JTextArea overDueLabel = new JTextArea("Overdue");
-				overDueLabel.setEditable(false);
-				c.gridx=4;
-				contentPaneReport.add(overDueLabel, c);
-
-				for(int i = 0; i<numberResults; i++) {
-					c.gridy = i+1;
+				PreparedStatement ps;
+				ResultSet rs;
+				int numberResults = 0;
+				
+				if(subjectField.getText().length() > 0) {
+					//System.out.println("field is not null!");
+					try{
+						ps = con.prepareStatement("SELECT count(bor.callNumber) FROM Borrowing bor, HasSubject hs WHERE hs.subject=(?) AND bor.callNumber=hs.callNumber AND bor.inDate IS NULL");
+						
+						ps.setString(1, subjectField.getText());
+						
+						rs = ps.executeQuery();
+						if(rs.next())
+							numberResults = rs.getInt("count(bor.callNumber)");
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						System.exit(-1);
+					}
+				}
+				else {
+					try{
+						// determine the number of books that are currently not returned yet
+						ps = con.prepareStatement("SELECT count(callNumber) FROM Borrowing WHERE inDate IS NULL");
+						
+						rs = ps.executeQuery();
+						if(rs.next())
+							numberResults = rs.getInt("count(callNumber)");
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						System.exit(-1);
+					}
+				}
+				if(numberResults == 0){
+					c.gridy = 2;
+					c.gridx = 0;
+					JTextArea message = new JTextArea("There are currently no items checked out!");
+					message.setEditable(false);
+					contentPaneReport.add(message, c);
+				}
+				else {
 					c.gridx=0;
-					JTextArea title = new JTextArea("  Title of book  ");
-					title.setEditable(false);
-					contentPaneReport.add(title,c);
-					JTextArea callNumber = new JTextArea("  Call Number of book  ");
-					callNumber.setEditable(false);
+					c.gridy = 0;
+					JTextArea titleLabel = new JTextArea("Title");
+					titleLabel.setEditable(false);
+					contentPaneReport.add(titleLabel,c);
+					JTextArea callNumberLabel = new JTextArea("Call Number");
+					callNumberLabel.setEditable(false);
 					c.gridx=1;
-					contentPaneReport.add(callNumber, c);
-					JTextArea checkedOut = new JTextArea("  Checked out on ...  ");
-					checkedOut.setEditable(false);
+					contentPaneReport.add(callNumberLabel, c);
+					JTextArea checkedOutLabel = new JTextArea("Checked Out");
+					checkedOutLabel.setEditable(false);
 					c.gridx=2;
-					contentPaneReport.add(checkedOut, c);
-					JTextArea dueDate = new JTextArea("  due date of book  ");
-					dueDate.setEditable(false);
+					contentPaneReport.add(checkedOutLabel,c);
+					JTextArea dueDateLabel = new JTextArea("Due Date");
+					dueDateLabel.setEditable(false);
 					c.gridx=3;
-					contentPaneReport.add(dueDate, c);
-					JTextArea overdue = new JTextArea("  overdue  ");
-					overdue.setEditable(false);
+					contentPaneReport.add(dueDateLabel, c);
+					JTextArea overDueLabel = new JTextArea("Overdue");
+					overDueLabel.setEditable(false);
 					c.gridx=4;
-					contentPaneReport.add(overdue, c);
+					contentPaneReport.add(overDueLabel, c);
+					
+					String[] callNumberArray;
+					callNumberArray = new String[numberResults];
+					int[] copyNumberArray;
+					copyNumberArray = new int[numberResults];
+					if(subjectField.getText().length() > 0) {
+						try{
+							ps = con.prepareStatement("SELECT bor.callNumber FROM Borrowing bor, HasSubject hs WHERE hs.subject=(?) AND bor.callNumber=hs.callNumber AND bor.inDate IS NULL ORDER BY bor.callNumber ASC");
+							
+							ps.setString(1, subjectField.getText());
+							
+							rs = ps.executeQuery();
+							int i = 0;
+							while(rs.next()) {
+								callNumberArray[i] = rs.getString("callNumber");
+								i++;
+							}
+							ps.close();
+						}
+						catch(SQLException ex){
+							System.out.println("Message: " + ex.getMessage() + "at line 700");
+							System.exit(-1);
+						}
+						try{
+							ps = con.prepareStatement("SELECT bor.copyNo FROM Borrowing bor, HasSubject hs WHERE hs.subject=(?) AND bor.callNumber=hs.callNumber AND bor.inDate IS NULL ORDER BY bor.callNumber ASC");
+								
+							ps.setString(1, subjectField.getText());
+							
+							rs = ps.executeQuery();
+							int i = 0;
+							while(rs.next()) {
+								copyNumberArray[i] = rs.getInt("copyNo");
+								i++;
+							}
+								ps.close();
+						}
+						catch(SQLException ex){
+							System.out.println("Message: " + ex.getMessage());
+							System.exit(-1);
+						}
+					}
+					else {
+						try{
+							ps = con.prepareStatement("SELECT callNumber FROM Borrowing WHERE inDate IS NULL ORDER BY callNumber ASC");
+							
+							rs = ps.executeQuery();
+							int i = 0;
+							while(rs.next()) {
+								callNumberArray[i] = rs.getString("callNumber");
+								i++;
+							}
+							ps.close();
+						}
+						catch(SQLException ex){
+							System.out.println("Message: " + ex.getMessage());
+							System.exit(-1);
+						}
+						try{
+							ps = con.prepareStatement("SELECT copyNo FROM Borrowing WHERE inDate IS NULL ORDER BY callNumber ASC");
+							
+							rs = ps.executeQuery();
+							int i = 0;
+							while(rs.next()) {
+								copyNumberArray[i] = rs.getInt("copyNo");
+								i++;
+							}
+							ps.close();
+						}
+						catch(SQLException ex){
+							System.out.println("Message: " + ex.getMessage());
+							System.exit(-1);
+						}
+					}
+					String[] bookTitleArray;
+					bookTitleArray = new String[numberResults];
+					Date[] outDateArray;
+					outDateArray = new Date[numberResults];
+					Date[] dueDateArray;
+					dueDateArray = new Date[numberResults];
+					String[] overdueArray;
+					overdueArray = new String[numberResults];
+					GregorianCalendar today = new GregorianCalendar();
+					for(int i = 0; i<numberResults; i++){
+						try{
+							ps = con.prepareStatement("SELECT title FROM Book WHERE callNumber=(?)");
+							
+							ps.setString(1, callNumberArray[i]);
+							
+							rs = ps.executeQuery();
+							if(rs.next())
+								bookTitleArray[i] = rs.getString("title");
+							ps.close();
+						}
+						catch(SQLException ex){
+							System.out.println("Message: " + ex.getMessage());
+							System.exit(-1);
+						}
+						try{
+							ps = con.prepareStatement("SELECT outDate FROM Borrowing WHERE callNumber=(?) AND copyNo=(?) AND inDate IS NULL");
+							
+							ps.setString(1, callNumberArray[i]);
+							
+							ps.setInt(2, copyNumberArray[i]);
+							
+							rs = ps.executeQuery();
+							if(rs.next())
+								outDateArray[i] = rs.getDate("outDate");
+							ps.close();
+						}
+						catch(SQLException ex){
+							System.out.println("Message: " + ex.getMessage());
+							System.exit(-1);
+						}
+						GregorianCalendar tempCal = new GregorianCalendar();
+						tempCal.setTime(outDateArray[i]);
+						tempCal.add(Calendar.WEEK_OF_YEAR, 2);
+						dueDateArray[i] = new Date(tempCal.getTime().getTime());
+						if(today.getTime().getTime() > tempCal.getTime().getTime())
+							overdueArray[i] = "Yes";
+						else
+							overdueArray[i] = "No";
+					}
+					System.out.println("numberResults = " +numberResults);
+					for(int i = 0; i<numberResults; i++) {
+						c.gridy = i+1;
+						c.gridx=0;
+						JTextArea title = new JTextArea(bookTitleArray[i]);
+						title.setEditable(false);
+						contentPaneReport.add(title,c);
+						JTextArea callNumber = new JTextArea(callNumberArray[i]);
+						callNumber.setEditable(false);
+						c.gridx=1;
+						contentPaneReport.add(callNumber, c);
+						JTextArea checkedOut = new JTextArea(outDateArray[i].toString());
+						checkedOut.setEditable(false);
+						c.gridx=2;
+						contentPaneReport.add(checkedOut, c);
+						JTextArea dueDate = new JTextArea(dueDateArray[i].toString());
+						dueDate.setEditable(false);
+						c.gridx=3;
+						contentPaneReport.add(dueDate, c);
+						JTextArea overdue = new JTextArea(overdueArray[i]);
+						overdue.setEditable(false);
+						c.gridx=4;
+						contentPaneReport.add(overdue, c);
+					}
 				}
 				Dimension d = popularItemsReportFrame.getToolkit().getScreenSize();
 				Rectangle r = popularItemsReportFrame.getBounds();
@@ -1130,152 +1307,56 @@ public class graphics implements ActionListener {
 			public void actionPerformed(ActionEvent e) {
 				//Add checks for non-null values
 				PreparedStatement ps;
-				try{
-					ps = con.prepareStatement("UPDATE BookCopy SET status=\'in\' WHERE callNumber=(?) AND copyNo=(?)");
-					
-					ps.setString(1, callNumberField.getText());
-					
-					//int tempCopyNum = Integer.parseInt(copyNumberField.getText());
-					ps.setString(2, copyNumberField.getText());
-					
-					ps.executeUpdate();
-					con.commit();
-					System.out.println("BookCopy sucessfully updated!");
-					ps.close();
-				}
-				catch(SQLException ex){
-					System.out.println("Message: " + ex.getMessage());
-					try{
-						con.rollback();
-					}
-					catch(SQLException ex2){
-						System.out.println("Message: " + ex2.getMessage());
-						System.exit(-1);
-					}
-				}
-				int bid = 0;
-				int borid = 0;
-				java.util.Date outDate = null;
 				ResultSet rs;
+				String checkCallNum = "DNE";
+				int checkCopyNum = -1;
 				try{
-					ps = con.prepareStatement("SELECT borid FROM Borrowing WHERE callNumber=(?) AND copyNo=(?) AND inDate IS NULL");
+					ps = con.prepareStatement("SELECT callNumber FROM BookCopy WHERE callNumber=(?) AND copyNo=(?) AND status=\'in\'");
 					
 					ps.setString(1, callNumberField.getText());
-					
 					int tempCopyNum = Integer.parseInt(copyNumberField.getText());
 					ps.setInt(2, tempCopyNum);
 					
 					rs = ps.executeQuery();
-					ResultSetMetaData rsmd = rs.getMetaData();
-					if(rs.next()) {
-						borid = rs.getInt("borid");
-						//System.out.println("borid: " + borid);
-					}
-					
+					if(rs.next())
+						checkCallNum = rs.getString("callNumber");
 					ps.close();
 				}
 				catch(SQLException ex){
-					System.out.println("Message: " + ex.getMessage());
+					System.out.println("Message: " + ex.getMessage() + " at 1290");
 					System.exit(-1);
 				}
 				try{
-					ps = con.prepareStatement("SELECT bid FROM Borrowing WHERE callNumber=(?) AND copyNo=(?) AND inDate IS NULL");
+					ps = con.prepareStatement("SELECT copyNo FROM BookCopy WHERE callNumber=(?) AND copyNo=(?) AND status=\'in\'");
 					
 					ps.setString(1, callNumberField.getText());
-					
 					int tempCopyNum = Integer.parseInt(copyNumberField.getText());
 					ps.setInt(2, tempCopyNum);
 					
 					rs = ps.executeQuery();
-					ResultSetMetaData rsmd = rs.getMetaData();
-					if(rs.next()) {
-						bid = rs.getInt("bid");
-						//System.out.println("bid: " + bid);
-					}
-					
+					if(rs.next())
+						checkCopyNum = rs.getInt("copyNo");
 					ps.close();
 				}
 				catch(SQLException ex){
-					System.out.println("Message: " + ex.getMessage());
+					System.out.println("Message: " + ex.getMessage() + " at 1306");
 					System.exit(-1);
 				}
-				try{
-					ps = con.prepareStatement("SELECT outDate FROM Borrowing WHERE callNumber=(?) AND copyNo=(?) AND inDate IS NULL");
-					
-					ps.setString(1, callNumberField.getText());
-					
-					int tempCopyNum = Integer.parseInt(copyNumberField.getText());
-					ps.setInt(2, tempCopyNum);
-					
-					rs = ps.executeQuery();
-					ResultSetMetaData rsmd = rs.getMetaData();
-					if(rs.next()) {
-						outDate = rs.getDate("outDate");
-						//System.out.println("outDate: " + outDate);
-					}
-					
-					ps.close();
+				if(checkCallNum == "DNE" || checkCopyNum == -1){
+					System.out.println("Book does not exist in the database, please enter the correct call number and copy number");
 				}
-				catch(SQLException ex){
-					System.out.println("Message: " + ex.getMessage());
-					System.exit(-1);
-				}
-				GregorianCalendar inCalendar = new GregorianCalendar();
-				//inCalendar.add(Calendar.WEEK_OF_YEAR, 0);
-				GregorianCalendar outCalendar = new GregorianCalendar();
-				outCalendar.setTime(outDate);
-				outCalendar.add(Calendar.WEEK_OF_YEAR, 2);
-				long today = inCalendar.getTime().getTime();
-				long outDate2Weeks = outCalendar.getTime().getTime();
-				
-				try{
-					ps = con.prepareStatement("UPDATE Borrowing SET inDate=(?) WHERE bid=(?) AND callNumber=(?) AND outDate=(?)");
-					
-					java.sql.Date sqlDate = new java.sql.Date(inCalendar.getTime().getTime());
-					ps.setDate(1, sqlDate);
-					
-					ps.setInt(2, bid);
-					
-					ps.setString(3, callNumberField.getText());
-					
-					java.sql.Date sqlDate2 = new java.sql.Date(outDate.getTime());
-					ps.setDate(4, sqlDate2);
-					
-					ps.executeUpdate();
-					con.commit();
-					System.out.println("Borrowing successfully updated!");
-					ps.close();
-				}
-				catch(SQLException ex){
-					System.out.println("Message: " + ex.getMessage());
+				else{
 					try{
-						con.rollback();
-					}
-					catch(SQLException ex2){
-						System.out.println("Message: " + ex2.getMessage());
-						System.exit(-1);
-					}
-				}
-				
-				// to compare the two dates, convert to long 
-				if(today > outDate2Weeks){
-					// create a fine entry here
-					try{
-						ps = con.prepareStatement("INSERT INTO Fine VALUES (fid_counter.nextval, ?, ?, ?, ?)");
+						ps = con.prepareStatement("UPDATE BookCopy SET status=\'in\' WHERE callNumber=(?) AND copyNo=(?)");
 						
-						int amount = 10;
-						ps.setInt(1, amount);
+						ps.setString(1, callNumberField.getText());
 						
-						java.sql.Date sqlDate = new java.sql.Date(inCalendar.getTime().getTime());
-						ps.setDate(2, sqlDate);
-						
-						ps.setDate(3, null);
-						
-						ps.setInt(4, borid);
+						//int tempCopyNum = Integer.parseInt(copyNumberField.getText());
+						ps.setString(2, copyNumberField.getText());
 						
 						ps.executeUpdate();
 						con.commit();
-						System.out.println("Fine successfully added!");
+						System.out.println("BookCopy sucessfully updated!");
 						ps.close();
 					}
 					catch(SQLException ex){
@@ -1288,33 +1369,96 @@ public class graphics implements ActionListener {
 							System.exit(-1);
 						}
 					}
-				}
-				int hid = 0;
-				try{
-					ps = con.prepareStatement("SELECT hid FROM holdRequest WHERE callNumber=(?)");
-					
-					ps.setString(1, callNumberField.getText());
-					
-					rs = ps.executeQuery();
-					ResultSetMetaData rsmd = rs.getMetaData();
-					if(rs.next()){
-						hid = rs.getInt("hid");
-					}
-					ps.close();
-				}
-				catch(SQLException ex){
-					System.out.println("Message: " + ex.getMessage());
-					System.exit(-1);
-				}
-				if(hid > 0){
+					int bid = 0;
+					int borid = 0;
+					java.util.Date outDate = null;
 					try{
-						ps = con.prepareStatement("UPDATE BookCopy SET status=\'on-hold\' WHERE callNumber=(?) AND status=\'in\'");
+						ps = con.prepareStatement("SELECT borid FROM Borrowing WHERE callNumber=(?) AND copyNo=(?) AND inDate IS NULL");
 						
 						ps.setString(1, callNumberField.getText());
 						
+						int tempCopyNum = Integer.parseInt(copyNumberField.getText());
+						ps.setInt(2, tempCopyNum);
+						
+						rs = ps.executeQuery();
+						ResultSetMetaData rsmd = rs.getMetaData();
+						if(rs.next()) {
+							borid = rs.getInt("borid");
+							//System.out.println("borid: " + borid);
+						}
+						
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						System.exit(-1);
+					}
+					try{
+						ps = con.prepareStatement("SELECT bid FROM Borrowing WHERE callNumber=(?) AND copyNo=(?) AND inDate IS NULL");
+						
+						ps.setString(1, callNumberField.getText());
+						
+						int tempCopyNum = Integer.parseInt(copyNumberField.getText());
+						ps.setInt(2, tempCopyNum);
+						
+						rs = ps.executeQuery();
+						ResultSetMetaData rsmd = rs.getMetaData();
+						if(rs.next()) {
+							bid = rs.getInt("bid");
+							//System.out.println("bid: " + bid);
+						}
+						
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						System.exit(-1);
+					}
+					try{
+						ps = con.prepareStatement("SELECT outDate FROM Borrowing WHERE callNumber=(?) AND copyNo=(?) AND inDate IS NULL");
+						
+						ps.setString(1, callNumberField.getText());
+						
+						int tempCopyNum = Integer.parseInt(copyNumberField.getText());
+						ps.setInt(2, tempCopyNum);
+						
+						rs = ps.executeQuery();
+						ResultSetMetaData rsmd = rs.getMetaData();
+						if(rs.next()) {
+							outDate = rs.getDate("outDate");
+							//System.out.println("outDate: " + outDate);
+						}
+						
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						System.exit(-1);
+					}
+					GregorianCalendar inCalendar = new GregorianCalendar();
+					//inCalendar.add(Calendar.WEEK_OF_YEAR, 0);
+					GregorianCalendar outCalendar = new GregorianCalendar();
+					outCalendar.setTime(outDate);
+					outCalendar.add(Calendar.WEEK_OF_YEAR, 2);
+					long today = inCalendar.getTime().getTime();
+					long outDate2Weeks = outCalendar.getTime().getTime();
+					
+					try{
+						ps = con.prepareStatement("UPDATE Borrowing SET inDate=(?) WHERE bid=(?) AND callNumber=(?) AND outDate=(?)");
+						
+						java.sql.Date sqlDate = new java.sql.Date(inCalendar.getTime().getTime());
+						ps.setDate(1, sqlDate);
+						
+						ps.setInt(2, bid);
+						
+						ps.setString(3, callNumberField.getText());
+						
+						java.sql.Date sqlDate2 = new java.sql.Date(outDate.getTime());
+						ps.setDate(4, sqlDate2);
+						
 						ps.executeUpdate();
 						con.commit();
-						System.out.println("BookCopy seccuessfully held");
+						System.out.println("Borrowing successfully updated!");
 						ps.close();
 					}
 					catch(SQLException ex){
@@ -1324,8 +1468,81 @@ public class graphics implements ActionListener {
 						}
 						catch(SQLException ex2){
 							System.out.println("Message: " + ex2.getMessage());
+							System.exit(-1);
 						}
 					}
+					
+					// to compare the two dates, convert to long 
+					if(today > outDate2Weeks){
+						// create a fine entry here
+						try{
+							ps = con.prepareStatement("INSERT INTO Fine VALUES (fid_counter.nextval, ?, ?, ?, ?)");
+							
+							int amount = 10;
+							ps.setInt(1, amount);
+							
+							java.sql.Date sqlDate = new java.sql.Date(inCalendar.getTime().getTime());
+							ps.setDate(2, sqlDate);
+							
+							ps.setDate(3, null);
+							
+							ps.setInt(4, borid);
+							
+							ps.executeUpdate();
+							con.commit();
+							System.out.println("Fine successfully added!");
+							ps.close();
+						}
+						catch(SQLException ex){
+							System.out.println("Message: " + ex.getMessage());
+							try{
+								con.rollback();
+							}
+							catch(SQLException ex2){
+								System.out.println("Message: " + ex2.getMessage());
+								System.exit(-1);
+							}
+						}
+					}
+					int hid = 0;
+					try{
+						ps = con.prepareStatement("SELECT hid FROM holdRequest WHERE callNumber=(?)");
+						
+						ps.setString(1, callNumberField.getText());
+						
+						rs = ps.executeQuery();
+						ResultSetMetaData rsmd = rs.getMetaData();
+						if(rs.next()){
+							hid = rs.getInt("hid");
+						}
+						ps.close();
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						System.exit(-1);
+					}
+					if(hid > 0){
+						try{
+							ps = con.prepareStatement("UPDATE BookCopy SET status=\'on-hold\' WHERE callNumber=(?) AND status=\'in\'");
+							
+							ps.setString(1, callNumberField.getText());
+							
+							ps.executeUpdate();
+							con.commit();
+							System.out.println("BookCopy seccuessfully held");
+							ps.close();
+						}
+						catch(SQLException ex){
+							System.out.println("Message: " + ex.getMessage());
+							try{
+								con.rollback();
+							}
+							catch(SQLException ex2){
+								System.out.println("Message: " + ex2.getMessage());
+							}
+						}
+					}
+
 				}
 				returnFrame.dispose();
 				showMainMenu("clerk"); 
@@ -1624,8 +1841,7 @@ public class graphics implements ActionListener {
 
 	}
 
-	private void showAccount() {
-		int bid = Integer.parseInt(usernameField.getText());
+	private void showAccount(int bid) {
 		final JFrame accountFrame = new JFrame("Welcome, username " + Integer.toString(bid));
 		accountFrame.setResizable(false);
 		accountFrame.getContentPane().setLayout(new GridBagLayout());
@@ -1699,35 +1915,11 @@ public class graphics implements ActionListener {
 		c.gridwidth = 1;
 		c.gridx = 0;
 		c.gridy= 1;
-		
-		// get user's hold requests
-		try {
-			ps = con.prepareStatement("SELECT UNIQUE book.title as title " +
-					"FROM Borrower b, book, HoldRequest h " +
-					"WHERE b.bid = h.bid AND book.callnumber = h.callnumber AND b.bid = ?");
-			ps.setInt(1, bid);
-			rs = ps.executeQuery();
-			
-			while(rs.next()){
-				// get the book title
-				title = rs.getString("title");
-								
-				JTextArea item = new JTextArea("Book title: " + title);
-				item.setEditable(false);
-				itemsHold.add(item);
-			}
-			// commit work 
-			con.commit();
-			ps.close();
-		} catch (SQLException e1) {
-			System.out.println("Message: " + e1.getMessage());
-		}
-		/*
 		for(int i=0; i<numbItemsHold; i++) {
 			JTextArea item = new JTextArea("name: name of book");
 			item.setEditable(false);
 			itemsHold.add(item);
-		}*/
+		}
 		itemsHold.setBorder(BorderFactory.createTitledBorder("Items on hold"));
 		accountFrame.add(itemsHold, c);
 
