@@ -1977,6 +1977,7 @@ public class graphics implements ActionListener {
 		int year;
 		int inCount;
 		int outCount;
+		int totalCount;
 		
 		PreparedStatement ps;
 		PreparedStatement ps2;
@@ -1995,27 +1996,27 @@ public class graphics implements ActionListener {
 		// get checked out books
 		try {
 			if (option == "author") {
-				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as inCount " +
+				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as totalCount " +
 						"FROM book b, bookcopy c " +
-						"WHERE b.mainauthor = ? AND c.callnumber = b.callnumber AND c.status = 'in' " +
+						"WHERE b.mainauthor = ? AND c.callnumber = b.callnumber " +
 						"GROUP BY b.callnumber, b.title, b.mainauthor, b.publisher, b.year");
 			}
 			else if (option == "title") {
-				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as inCount " +
+				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as totalCount " +
 						"FROM book b, bookcopy c " +
-						"WHERE b.title = ? AND c.callnumber = b.callnumber AND c.status = 'in' " +
+						"WHERE b.title = ? AND c.callnumber = b.callnumber " +
 						"GROUP BY b.callnumber, b.title, b.mainauthor, b.publisher, b.year");
 			}
 			else{
-				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as inCount " +
+				ps = con.prepareStatement("SELECT b.callnumber as cno, b.title as title, b.mainauthor as author, b.publisher as publisher, b.year as year, count(*) as totalCount " +
 						"FROM book b, bookcopy c, hassubject s " +
-						"WHERE s.subject = ? AND s.callnumber = b.callnumber AND c.callnumber = b.callnumber AND c.status = 'in' " +
+						"WHERE s.subject = ? AND s.callnumber = b.callnumber AND c.callnumber = b.callnumber " +
 						"GROUP BY b.callnumber, b.title, b.mainauthor, b.publisher, b.year");
 				
 			}
-			ps2 = con.prepareStatement("SELECT count(*) as outCount " +
+			ps2 = con.prepareStatement("SELECT count(*) as inCount " +
 					"FROM book b, bookcopy c " +
-					"WHERE b.callnumber = ? AND c.status = 'out' AND c.callnumber = b.callnumber");
+					"WHERE b.callnumber = ? AND c.status = 'in' AND c.callnumber = b.callnumber");
 
 			ps.setString(1, keyword);
 			rs = ps.executeQuery();
@@ -2027,15 +2028,17 @@ public class graphics implements ActionListener {
 				bauthor = rs.getString("author");
 				publisher = rs.getString("publisher");
 				year = rs.getInt("year");
-				inCount = rs.getInt("inCount");
+				totalCount = rs.getInt("totalCount");
 				
 				ps2.setString(1, callnumber);
 				rs2 = ps2.executeQuery();
 				if(rs2.next()){
-					outCount = rs2.getInt("outCount");
+					inCount = rs2.getInt("inCount");
 				}
 				else
-					outCount = 0;
+					inCount = 0;
+				
+				outCount = totalCount - inCount;
 				
 				JPanel searchPanel = new JPanel(new GridLayout());
 				searchPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
