@@ -184,7 +184,7 @@ public class graphics implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		PreparedStatement  ps;
 		ResultSet rs;
-		String type = "librarian";
+		String type = "clerk";
 		if (connect(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 			// if the username and password are valid,
 			// remove the login window and display a text menu
@@ -619,13 +619,15 @@ public class graphics implements ActionListener {
 				if(subjectField.getText().length() > 0) {
 					//System.out.println("field is not null!");
 					try{
-						ps = con.prepareStatement("SELECT count(bor.callNumber) FROM Borrowing bor, HasSubject hs WHERE hs.subject=(?) AND bor.callNumber=hs.callNumber AND bor.inDate IS NULL");
+						ps = con.prepareStatement("SELECT count(hs.callNumber) FROM Borrowing bor, HasSubject hs WHERE hs.subject=(?) AND bor.inDate IS NULL");
 						
 						ps.setString(1, subjectField.getText());
 						
 						rs = ps.executeQuery();
+						System.out.println("at 627");
 						if(rs.next())
-							numberResults = rs.getInt("count(bor.callNumber)");
+							numberResults = rs.getInt("count(hs.callNumber)");
+						System.out.println("numberResults = " + numberResults);
 						ps.close();
 					}
 					catch(SQLException ex){
@@ -639,8 +641,10 @@ public class graphics implements ActionListener {
 						ps = con.prepareStatement("SELECT count(callNumber) FROM Borrowing WHERE inDate IS NULL");
 						
 						rs = ps.executeQuery();
+						System.out.println("at 644");
 						if(rs.next())
 							numberResults = rs.getInt("count(callNumber)");
+						System.out.println("numberResults = " + numberResults);
 						ps.close();
 					}
 					catch(SQLException ex){
@@ -648,6 +652,7 @@ public class graphics implements ActionListener {
 						System.exit(-1);
 					}
 				}
+				System.out.println("Final numberResults = " + numberResults);
 				if(numberResults == 0){
 					c.gridy = 2;
 					c.gridx = 0;
@@ -680,38 +685,17 @@ public class graphics implements ActionListener {
 					
 					String[] callNumberArray;
 					callNumberArray = new String[numberResults];
-					int[] copyNumberArray;
-					copyNumberArray = new int[numberResults];
 					if(subjectField.getText().length() > 0) {
 						try{
-							ps = con.prepareStatement("SELECT bor.callNumber FROM Borrowing bor, HasSubject hs WHERE hs.subject=(?) AND bor.callNumber=hs.callNumber AND bor.inDate IS NULL ORDER BY bor.callNumber ASC");
+							ps = con.prepareStatement("SELECT hs.callNumber FROM Borrowing bor, HasSubject hs WHERE hs.subject=(?) AND hs.callNumber=bor.callNumber AND bor.inDate IS NULL ORDER BY hs.callNumber ASC");
 							
 							ps.setString(1, subjectField.getText());
 							
-							rs = ps.executeQuery();
+							rs = ps.executeQuery();							
 							int i = 0;
-							while(rs.next()) {
-								callNumberArray[i] = rs.getString("callNumber");
-								i++;
-							}
+							while(rs.next())
+								callNumberArray[i] = rs.getString("hs.callNumber");
 							ps.close();
-						}
-						catch(SQLException ex){
-							System.out.println("Message: " + ex.getMessage() + "at line 700");
-							System.exit(-1);
-						}
-						try{
-							ps = con.prepareStatement("SELECT bor.copyNo FROM Borrowing bor, HasSubject hs WHERE hs.subject=(?) AND bor.callNumber=hs.callNumber AND bor.inDate IS NULL ORDER BY bor.callNumber ASC");
-								
-							ps.setString(1, subjectField.getText());
-							
-							rs = ps.executeQuery();
-							int i = 0;
-							while(rs.next()) {
-								copyNumberArray[i] = rs.getInt("copyNo");
-								i++;
-							}
-								ps.close();
 						}
 						catch(SQLException ex){
 							System.out.println("Message: " + ex.getMessage());
@@ -726,28 +710,11 @@ public class graphics implements ActionListener {
 							int i = 0;
 							while(rs.next()) {
 								callNumberArray[i] = rs.getString("callNumber");
-								i++;
 							}
 							ps.close();
 						}
 						catch(SQLException ex){
 							System.out.println("Message: " + ex.getMessage());
-							System.exit(-1);
-						}
-						try{
-							ps = con.prepareStatement("SELECT copyNo FROM Borrowing WHERE inDate IS NULL ORDER BY callNumber ASC");
-							
-							rs = ps.executeQuery();
-							int i = 0;
-							while(rs.next()) {
-								copyNumberArray[i] = rs.getInt("copyNo");
-								i++;
-							}
-							ps.close();
-						}
-						catch(SQLException ex){
-							System.out.println("Message: " + ex.getMessage());
-							System.exit(-1);
 						}
 					}
 					String[] bookTitleArray;
@@ -775,12 +742,9 @@ public class graphics implements ActionListener {
 							System.exit(-1);
 						}
 						try{
-							ps = con.prepareStatement("SELECT outDate FROM Borrowing WHERE callNumber=(?) AND copyNo=(?) AND inDate IS NULL");
+							ps = con.prepareStatement("SELECT outDate FROM Borrowing WHERE callNumber=(?) AND inDate IS NULL");
 							
 							ps.setString(1, callNumberArray[i]);
-							
-							ps.setInt(2, copyNumberArray[i]);
-							
 							rs = ps.executeQuery();
 							if(rs.next())
 								outDateArray[i] = rs.getDate("outDate");
