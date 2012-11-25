@@ -498,50 +498,165 @@ public class graphics implements ActionListener {
 				if(Pattern.matches("^[0-2][0-9][0-9][0-9]", yearString) && Pattern.matches("[0-9]+", numberResultsString) &&
 						!numberResultsString.equals("")) {
 				int numberResults = Integer.parseInt(numberResultsString);
-				c.gridx=0;
-				c.gridy = 0;
-				JTextArea titleLabel = new JTextArea("Title");
-				titleLabel.setEditable(false);
-				contentPaneReport.add(titleLabel,c);
-				JTextArea callNumberLabel = new JTextArea("Call Number");
-				callNumberLabel.setEditable(false);
-				c.gridx=1;
-				contentPaneReport.add(callNumberLabel, c);
-				JTextArea isbnLabel = new JTextArea("ISBN");
-				isbnLabel.setEditable(false);
-				c.gridx=2;
-				contentPaneReport.add(isbnLabel);
-				JTextArea yearLabel = new JTextArea("Year");
-				yearLabel.setEditable(false);
-				c.gridx=3;
-				contentPaneReport.add(yearLabel);
+				try{
+					PreparedStatement ps;
+					ResultSet rs;
+					int returnedResults = -1;
+					String yearHeadString = new String("01/01/" + yearString);
+					String yearTailString = new String("31/12/" + yearString);
+					SimpleDateFormat fm = new SimpleDateFormat("dd/MM/yyyy");
+					java.util.Date firstDate = fm.parse(yearHeadString);
+					java.util.Date lastDate = fm.parse(yearTailString);
+					java.sql.Date dateHead = new java.sql.Date(firstDate.getTime());
+					java.sql.Date dateTail = new java.sql.Date(lastDate.getTime());
+					// check if any books were borrowed in the year
+					try{
+						ps = con.prepareStatement("SELECT count(*) FROM Borrowing WHERE outDate BETWEEN (?) AND (?)");
+						
+						ps.setDate(1, dateHead);
+						
+						ps.setDate(2, dateTail);
+						
+						rs = ps.executeQuery();
+						if(rs.next())
+							returnedResults = rs.getInt("count(*)");
+					}
+					catch(SQLException ex){
+						System.out.println("Message: " + ex.getMessage());
+						System.exit(-1);
+					}
+					
+					if(numberResults == 0 || returnedResults <= 0){
+						c.gridx = 0;
+						c.gridy = 0;
+						JTextArea message = new JTextArea("0 results found");
+						message.setEditable(false);
+						contentPaneReport.add(message,c);
+					}
+					else{
+						c.gridx=0;
+						c.gridy = 0;
+						JTextArea titleLabel = new JTextArea("Title");
+						titleLabel.setEditable(false);
+						contentPaneReport.add(titleLabel,c);
+						JTextArea callNumberLabel = new JTextArea("Call Number");
+						callNumberLabel.setEditable(false);
+						c.gridx=1;
+						contentPaneReport.add(callNumberLabel, c);
+						JTextArea isbnLabel = new JTextArea("ISBN");
+						isbnLabel.setEditable(false);
+						c.gridx=2;
+						contentPaneReport.add(isbnLabel);
+						JTextArea yearLabel = new JTextArea("Year");
+						yearLabel.setEditable(false);
+						c.gridx=3;
+						contentPaneReport.add(yearLabel);
+						
+						String[] popTitleArray = new String[returnedResults];
+						String[] popCallNumberArray = new String[returnedResults];
+						int[] popIsbnArray = new int[returnedResults];
+						int[] popBookYear = new int[returnedResults];
+						// order popular books using call number with the most popular book first
+						try{
+							ps = con.prepareStatement("SELECT callNumber FROM Borrowing WHERE outDate BETWEEN (?) AND (?) GROUP BY callNumber ORDER BY count(borid) DESC");
+							
+							ps.setDate(1, dateHead);
+							
+							ps.setDate(2, dateTail);
+							
+							rs = ps.executeQuery();
+							int i = 0;
+							while(rs.next()){
+								popCallNumberArray[i] = rs.getString("callNumber");
+								i++;
+							}
+							ps.close();
+						}
+						catch(SQLException ex){
+							System.out.println("Message: " + ex.getMessage());
+							System.exit(-1);
+						}
+						for(int i = 0; i < returnedResults; i++) {
+							// title
+							try{
+								ps = con.prepareStatement("SELECT title FROM Book WHERE callNumber=(?)");
+								
+								ps.setString(1, popCallNumberArray[i]);
+								
+								rs = ps.executeQuery();
+								if(rs.next())
+									popTitleArray[i] = rs.getString("title");
+								ps.close();
+							}
+							catch(SQLException ex){
+								System.out.println("Message: " + ex.getMessage());
+								System.exit(-1);
+							}
+							// isbn
+							try{
+								ps = con.prepareStatement("SELECT isbn FROM Book WHERE callNumber=(?)");
+								
+								ps.setString(1, popCallNumberArray[i]);
+								
+								rs = ps.executeQuery();
+								if(rs.next())
+									popIsbnArray[i] = rs.getInt("isbn");
+								ps.close();
+							}
+							catch(SQLException ex){
+								System.out.println("Message: " + ex.getMessage());
+								System.exit(-1);
+							}
+							//year
+							try{
+								ps = con.prepareStatement("SELECT year FROM Book WHERE callNumber=(?)");
+								
+								ps.setString(1, popCallNumberArray[i]);
+								
+								rs = ps.executeQuery();
+								if(rs.next())
+									popBookYear[i] = rs.getInt("year");
+								ps.close();
+							}
+							catch(SQLException ex){
+								System.out.println("Message: " + ex.getMessage());
+								System.exit(-1);
+							}
+						}	
+						if(returnedResults < numberResults)
+							numberResults = returnedResults - 1;
+						for(int i = 0; i<numberResults; i++) {
+							c.gridy = i+1;
+							c.gridx=0;
+							JTextArea title = new JTextArea(popTitleArray[i]);
+							title.setEditable(false);
+							contentPaneReport.add(title,c);
+							JTextArea callNumber = new JTextArea(popCallNumberArray[i]);
+							callNumber.setEditable(false);
+							c.gridx=1;
+							contentPaneReport.add(callNumber, c);
+							JTextArea isbn = new JTextArea(Integer.toString(popIsbnArray[i]));
+							isbn.setEditable(false);
+							c.gridx=2;
+							contentPaneReport.add(isbn, c);
+							JTextArea year = new JTextArea(Integer.toString(popBookYear[i]));
+							year.setEditable(false);
+							c.gridx=3;
+							contentPaneReport.add(year,c);
+						}
+						Dimension d = popularItemsReportFrame.getToolkit().getScreenSize();
+						Rectangle r = popularItemsReportFrame.getBounds();
+						popularItemsReportFrame.setLocation((d.width - r.width) / 2,
+								(d.height - r.height) / 2);		
 
-				for(int i = 0; i<numberResults; i++) {
-					c.gridy = i+1;
-					c.gridx=0;
-					JTextArea title = new JTextArea("  Title of book  ");
-					title.setEditable(false);
-					contentPaneReport.add(title,c);
-					JTextArea callNumber = new JTextArea("  Call Number of book  ");
-					callNumber.setEditable(false);
-					c.gridx=1;
-					contentPaneReport.add(callNumber, c);
-					JTextArea isbn = new JTextArea("  ISBN of book  ");
-					isbn.setEditable(false);
-					c.gridx=2;
-					contentPaneReport.add(isbn, c);
-					JTextArea year = new JTextArea("  Year of book  ");
-					year.setEditable(false);
-					c.gridx=3;
-					contentPaneReport.add(year,c);
+						popularItemsReportFrame.pack();
+						popularItemsReportFrame.setVisible(true);
+					}
 				}
-				Dimension d = popularItemsReportFrame.getToolkit().getScreenSize();
-				Rectangle r = popularItemsReportFrame.getBounds();
-				popularItemsReportFrame.setLocation((d.width - r.width) / 2,
-						(d.height - r.height) / 2);		
-
-				popularItemsReportFrame.pack();
-				popularItemsReportFrame.setVisible(true);
+				catch (ParseException px) {
+					// TODO Auto-generated catch block
+					px.printStackTrace();
+				}
 			  } else {
 					JOptionPane.showMessageDialog(null, "An incorrect value has been entered", "Error", JOptionPane.WARNING_MESSAGE);		
 			  }
@@ -1311,7 +1426,7 @@ public class graphics implements ActionListener {
 				String checkCallNum = "DNE";
 				int checkCopyNum = -1;
 				try{
-					ps = con.prepareStatement("SELECT callNumber FROM BookCopy WHERE callNumber=(?) AND copyNo=(?) AND status=\'in\'");
+					ps = con.prepareStatement("SELECT callNumber FROM BookCopy WHERE callNumber=(?) AND copyNo=(?) AND status=\'out\'");
 					
 					ps.setString(1, callNumberField.getText());
 					int tempCopyNum = Integer.parseInt(copyNumberField.getText());
@@ -1323,11 +1438,12 @@ public class graphics implements ActionListener {
 					ps.close();
 				}
 				catch(SQLException ex){
-					System.out.println("Message: " + ex.getMessage() + " at 1290");
+					System.out.println("Message: " + ex.getMessage());
 					System.exit(-1);
 				}
+				System.out.println("checkCallNum = " + checkCallNum);
 				try{
-					ps = con.prepareStatement("SELECT copyNo FROM BookCopy WHERE callNumber=(?) AND copyNo=(?) AND status=\'in\'");
+					ps = con.prepareStatement("SELECT copyNo FROM BookCopy WHERE callNumber=(?) AND copyNo=(?) AND status=\'out\'");
 					
 					ps.setString(1, callNumberField.getText());
 					int tempCopyNum = Integer.parseInt(copyNumberField.getText());
@@ -1339,9 +1455,10 @@ public class graphics implements ActionListener {
 					ps.close();
 				}
 				catch(SQLException ex){
-					System.out.println("Message: " + ex.getMessage() + " at 1306");
+					System.out.println("Message: " + ex.getMessage());
 					System.exit(-1);
 				}
+				System.out.println("checkCopyNum = " + checkCopyNum);
 				if(checkCallNum == "DNE" || checkCopyNum == -1){
 					System.out.println("Book does not exist in the database, please enter the correct call number and copy number");
 				}
