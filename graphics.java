@@ -184,7 +184,7 @@ public class graphics implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		PreparedStatement  ps;
 		ResultSet rs;
-		String type = "librarian";
+		String type = "student";
 
 		if (connect(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 			// if the username and password are valid,
@@ -246,8 +246,6 @@ public class graphics implements ActionListener {
 		});
 
 		if (type.equals("student")) {
-			// temp int to hold the bid of the account to look in
-			final int bid = 22;
 			JLabel labelSearch = new JLabel("Search: ");
 			JButton searchButton = new JButton("Search");
 			String[] searchOptions = { "author", "title", "subject" };
@@ -266,7 +264,7 @@ public class graphics implements ActionListener {
 			accountButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					mainMenu.dispose();
-					showAccount(bid);
+					showAccount();
 				}
 			});
 
@@ -1888,7 +1886,8 @@ public class graphics implements ActionListener {
 
 	}
 
-	private void showAccount(int bid) {
+	private void showAccount() {
+		int bid = Integer.parseInt(usernameField.getText());
 		final JFrame accountFrame = new JFrame("Welcome, username " + Integer.toString(bid));
 		accountFrame.setResizable(false);
 		accountFrame.getContentPane().setLayout(new GridBagLayout());
