@@ -184,7 +184,7 @@ public class graphics implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		PreparedStatement  ps;
 		ResultSet rs;
-		String type = "student";
+		String type = "clerk";
 		if (connect(Integer.parseInt(usernameField.getText()), String.valueOf(passwordField.getPassword()))) {
 			// if the username and password are valid,
 			// remove the login window and display a text menu
@@ -253,7 +253,7 @@ public class graphics implements ActionListener {
 			searchButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					mainMenu.dispose();
-					showSearchResults(searchTextField.getText(), searchMenu.getSelectedObjects().toString());
+					showSearchResults(searchTextField.getText(), searchMenu.getSelectedItem().toString());
 				}
 			});
 			
@@ -1390,7 +1390,7 @@ public class graphics implements ActionListener {
  		try {
  			ps = con.prepareStatement("SELECT UNIQUE book.title as title, b.bid as bid, bo.copyno as copyno " +
  					"FROM borrowing bo, book, borrower b, borrowertype t " +
- 					"WHERE bo.indate is null AND b.bid = bo.bid AND b.type = t.type AND (bo.outdate + t.booktimelimit * 7) > sysdate " +
+ 					"WHERE bo.indate is null AND b.bid = bo.bid AND b.type = t.type AND (bo.outdate + t.booktimelimit * 7) < sysdate " +
  					"AND book.callnumber = bo.callnumber");
  			rs = ps.executeQuery();
  			
@@ -1428,7 +1428,7 @@ public class graphics implements ActionListener {
  		try {
  			ps = con.prepareStatement("SELECT UNIQUE b.bid as bid, b.emailAddress as email " +
  					"FROM borrowing bo, book, borrower b, borrowertype t " +
- 					"WHERE bo.indate is null AND b.bid = bo.bid AND b.type = t.type AND (bo.outdate + t.booktimelimit * 7) > sysdate " +
+ 					"WHERE bo.indate is null AND b.bid = bo.bid AND b.type = t.type AND (bo.outdate + t.booktimelimit * 7) < sysdate " +
  					"AND book.callnumber = bo.callnumber");
  			rs = ps.executeQuery();
  			
