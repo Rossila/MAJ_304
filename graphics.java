@@ -162,14 +162,14 @@ public class graphics implements ActionListener {
 			rs = ps.executeQuery();
 			con.commit();
 			
-			rs.next();
-			bid_rd = rs.getInt("bid");
-			pw_rd = rs.getString("password");
 			
+			if(rs.next()){
+				bid_rd = rs.getInt("bid");
+				pw_rd = rs.getString("password");
+				if (bid_rd == bid && pw_rd.equals(password) == true)
+					return true;
+			}
 			ps.close();
-			
-			if (bid_rd == bid && pw_rd.equals(password) == true)
-				return true;
 			
 		} catch (SQLException e1) {
 			System.out.println("Message: " + e1.getMessage());
@@ -1722,12 +1722,7 @@ public class graphics implements ActionListener {
 		} catch (SQLException e1) {
 			System.out.println("Message: " + e1.getMessage());
 		}
-		/*
-		for(int i=0; i<numbItemsHold; i++) {
-			JTextArea item = new JTextArea("name: name of book");
-			item.setEditable(false);
-			itemsHold.add(item);
-		}*/
+
 		itemsHold.setBorder(BorderFactory.createTitledBorder("Items on hold"));
 		accountFrame.add(itemsHold, c);
 
@@ -1735,7 +1730,29 @@ public class graphics implements ActionListener {
 		c.gridy = 1;
 		c.gridx = 1;
 		finePanel.setBorder(BorderFactory.createTitledBorder("Fines"));
-		JTextArea paymentOptions = new JTextArea("Total fine: amount \n PaymentOptions: \n" +
+		
+		// get user's total fine amount
+		int totalFine = 0;
+		try {
+			ps = con.prepareStatement("SELECT UNIQUE f.amount as amount " +
+					"FROM Borrower b, borrowing bo, fine f " +
+					"WHERE b.bid = ? AND bo.bid = b.bid AND f.borid = bo.borid " +
+					"AND f.paiddate IS NULL");
+			ps.setInt(1, bid);
+			rs = ps.executeQuery();
+			
+			while(rs.next()){
+				// get the fine amount associated with this borrowing
+				totalFine = totalFine + rs.getInt("amount");				
+			}
+			// commit work 
+			con.commit();
+			ps.close();
+		} catch (SQLException e1) {
+			System.out.println("Message: " + e1.getMessage());
+		}
+		
+		JTextArea paymentOptions = new JTextArea("Total fine: $" + Integer.toString(totalFine) + "\nPaymentOptions: \n" +
 				"Option #1: Pay by cash. Go to the clerk at the nearest library branch to pay your fine. \n" +
 		"Option #2: Pay by credit card.");
 		paymentOptions.setEditable(false);
